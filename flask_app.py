@@ -696,10 +696,24 @@ def init_demo_account_if_needed():
 
 init_demo_account_if_needed()
 
+@app.before_request
+def handle_options():
+    if request.method == 'OPTIONS':
+        res = make_response()
+        res.headers['Access-Control-Allow-Origin'] = '*'
+        res.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+        res.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+        return res
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    return response
+
 @app.route("/")
 @app.route("/index")
-@app.route("/api/index")
-@app.route("/api/index.py")
 def index():
     return send_ui_file("code.html")
 
