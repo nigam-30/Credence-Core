@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Credence Core — Digital Banking &amp; Wealth Hub</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', '"Plus Jakarta Sans"', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#090d16',
+                            accent: '#059669',
+                            accentLight: '#10b981',
+                        }
+                    },
+                    boxShadow: {
+                        'subtle': '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+                        'card': '0 10px 30px -5px rgba(15,23,42,0.04), 0 0 1px 1px rgba(15,23,42,0.05)',
+                        'elevated': '0 20px 40px -10px rgba(15,23,42,0.07), 0 0 1px 1px rgba(15,23,42,0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 450, 'GRAD' 0, 'opsz' 22;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col justify-start antialiased selection:bg-emerald-500 selection:text-white p-3 sm:p-5 lg:p-7">
+    <!-- Main Shell Container -->
+    <div class="w-full max-w-[1440px] mx-auto space-y-6 flex-1 flex flex-col justify-start">
+        
+        <!-- ════════════════════════ TOP APP BAR (Credence Core Command Bar) ════════════════════════ -->
+        <header class="w-full flex flex-col lg:flex-row items-center justify-between gap-3 lg:gap-4 py-1 shrink-0">
+            <!-- Brand Monogram & Status -->
+            <div class="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start shrink-0">
+                <a href="/dashboard" class="flex items-center gap-2.5 group shrink-0 select-none">
+                    <div class="size-9 sm:size-10 rounded-xl sm:rounded-2xl bg-slate-950 text-white flex items-center justify-center font-extrabold text-lg sm:text-xl shadow-md group-hover:scale-105 transition-transform shrink-0">
+                        C
+                    </div>
+                    <div class="flex flex-col justify-center shrink-0 -space-y-0.5">
+                        <span class="text-base sm:text-lg font-black tracking-tight text-slate-950 whitespace-nowrap leading-tight">Credence Core</span>
+                        <span class="text-[9px] font-mono font-bold tracking-wider text-slate-400 whitespace-nowrap block">INSTITUTIONAL BANKING</span>
+                    </div>
+                </a>
+                
+                <!-- Mobile Profile Trigger -->
+                <div class="flex items-center gap-2 lg:hidden">
+                    <button onclick="openUserProfileModal()" class="size-9 rounded-full bg-slate-950 text-white font-bold flex items-center justify-center text-xs ring-2 ring-emerald-400 shadow-md cursor-pointer">
+                        <span id="ui-avatar-initials-mob">--</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Primary Navigation Bar (8 Comprehensive Tabs) -->
+            <nav class="bg-white border border-slate-200/90 px-1 py-1 rounded-2xl shadow-subtle flex items-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar max-w-full shrink-0">
+                <button onclick="switchTab('dashboard')" id="tab-btn-dashboard"
+                    class="tab-nav-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-950 text-white shadow-xs transition-all whitespace-nowrap shrink-0">
+                    <span class="material-symbols-outlined text-base">dashboard</span>
+                    <span>Dashboard</span>
+                </button>
+                <button onclick="switchTab('transactions')" id="tab-btn-transactions"
+                    class="tab-nav-btn flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-all whitespace-nowrap shrink-0">
+                    <span class="material-symbols-outlined text-base">receipt_long</span>
+                    <span>Ledger</span>
+                </button>
+                <button onclick="switchTab('analytics')" id="tab-btn-analytics"
+                    class="tab-nav-btn flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-all whitespace-nowrap shrink-0">
+                    <span class="material-symbols-outlined text-base">analytics</span>
+                    <span>Cashflow</span>
+                </button>
+                <button onclick="switchTab('loans')" id="tab-btn-loans"
+                    class="tab-nav-btn flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-all whitespace-nowrap shrink-0">
+                    <span class="material-symbols-outlined text-base">real_estate_agent</span>
+                    <span>Loans</span>
+                </button>
+                <button onclick="switchTab('invest')" id="tab-btn-invest"
+                    class="tab-nav-btn flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-all whitespace-nowrap shrink-0">
+                    <span class="material-symbols-outlined text-base">trending_up</span>
+                    <span>Investments</span>
+                </button>
+                <button onclick="switchTab('transfer')" id="tab-btn-transfer"
+                    class="tab-nav-btn flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-all whitespace-nowrap shrink-0">
+                    <span class="material-symbols-outlined text-base">send</span>
+                    <span>Transfer</span>
+                </button>
+                <button onclick="switchTab('reports')" id="tab-btn-reports"
+                    class="tab-nav-btn flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-all whitespace-nowrap shrink-0">
+                    <span class="material-symbols-outlined text-base">description</span>
+                    <span>Statements</span>
+                </button>
+                <button onclick="switchTab('settings')" id="tab-btn-settings"
+                    class="tab-nav-btn flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-all whitespace-nowrap shrink-0">
+                    <span class="material-symbols-outlined text-base">credit_card</span>
+                    <span>Cards &amp; PIN</span>
+                </button>
+            </nav>
+
+            <!-- Right Profile & Switcher Controls -->
+            <div class="hidden lg:flex items-center gap-3 shrink-0">
+                <button onclick="openUserProfileModal()" class="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200/90 shadow-subtle transition-all cursor-pointer shrink-0">
+                    <div class="size-8 rounded-xl bg-slate-950 text-white font-extrabold flex items-center justify-center text-xs shrink-0">
+                        <span id="ui-avatar-initials">--</span>
+                    </div>
+                    <div class="text-left shrink-0">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-extrabold text-slate-900 block leading-tight truncate max-w-[100px] sm:max-w-[120px]" id="reports-acc-name">User Account</span>
+                            <span class="px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase bg-emerald-100 text-emerald-800 shrink-0" id="ui-account-type-badge">Savings</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-emerald-600 font-bold block leading-tight mt-0.5" id="ui-current-acc-id">Acc #----</span>
+                    </div>
+                    <span class="material-symbols-outlined text-slate-400 text-sm">expand_more</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ════════════════════════ TAB VIEW 1: DASHBOARD (Unified 3-Column Command Deck) ════════════════════════ -->
+        <main id="view-dashboard" class="tab-view-content grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            
+            <!-- COLUMN 1: FINANCIAL ASSETS & CARDS (Span 3) -->
+            <div class="lg:col-span-3 space-y-4">
+                
+                <!-- PRIMARY FOCAL ANCHOR: Available Balance Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-card border border-slate-200/90 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Total Clear Balance</span>
+                        <button onclick="toggleBalanceVisibility()" class="size-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer" title="Unlock Balance with PIN">
+                            <span class="material-symbols-outlined text-base" id="balance-eye-icon">visibility_off</span>
+                        </button>
+                    </div>
+
+                    <div class="mt-1">
+                        <h2 class="text-3xl sm:text-[34px] font-extrabold text-slate-950 tracking-tight tabular-nums font-sans" id="ui-total-balance">
+                            ••••••••
+                        </h2>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span class="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                            <span class="size-1.5 rounded-full bg-emerald-500"></span> Active Ledger
+                        </span>
+                        <button onclick="copyAccountNumber()" class="font-mono text-[11px] font-bold text-slate-600 hover:text-slate-950 flex items-center gap-1 cursor-pointer" title="Copy 14-digit Account Number">
+                            <span>Copy #</span>
+                            <span class="material-symbols-outlined text-xs">content_copy</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 14-Digit Account Chip with Account Type -->
+                <div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-subtle flex items-center justify-between">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 mb-0.5">
+                            <span class="text-[9px] font-mono uppercase font-bold text-slate-400 tracking-wider">Account Number</span>
+                            <span class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-slate-100 text-slate-700" id="ui-left-acc-type">Savings</span>
+                        </div>
+                        <p class="text-xs font-mono font-extrabold text-slate-900 tracking-wider truncate tabular-nums" id="ui-left-acc-display">----------------</p>
+                    </div>
+                    <button onclick="copyAccountNumber()" class="size-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer" title="Copy Account Number">
+                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                    </button>
+                </div>
+
+                <!-- Obsidian Debit Card Visualizer (Masked to Last 4 Digits) -->
+                <div class="bg-slate-950 rounded-3xl p-6 text-white shadow-elevated relative overflow-hidden min-h-[190px] flex flex-col justify-between group cursor-pointer" onclick="switchTab('settings')">
+                    <div class="flex items-center justify-between relative z-10">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-extrabold tracking-wider text-slate-200 uppercase">Visa Platinum</span>
+                            <span class="material-symbols-outlined text-slate-400 text-base">contactless</span>
+                        </div>
+                        <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-white/10 text-emerald-400 border border-white/10">Active</span>
+                    </div>
+
+                    <div class="my-4 relative z-10">
+                        <div class="font-mono text-lg tracking-[0.25em] font-semibold text-slate-100" id="ui-card-number">
+                            •••• •••• •••• ----
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-xs relative z-10 pt-1 border-t border-white/10">
+                        <div>
+                            <span class="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">Expires</span>
+                            <span class="font-mono font-bold text-slate-200" id="ui-card-expiry">--/--</span>
+                        </div>
+                        <div class="flex items-center gap-1 text-slate-300 group-hover:text-emerald-400 font-bold transition-colors">
+                            <span>Manage PIN &amp; Limits</span>
+                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <!-- COLUMN 2: REAL-TIME LEDGER & CASHFLOW (Span 5) -->
+            <div class="lg:col-span-5 space-y-5">
+                
+                <!-- Cash Flow Overview Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-card border border-slate-200/90 space-y-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-base font-extrabold text-slate-950">Cash Flow Overview</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Real-time ledger analytics &amp; spending volume</p>
+                        </div>
+                        <span class="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">Synced</span>
+                    </div>
+
+                    <!-- Inflow / Outflow / Available Metric Split -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Inflows</span>
+                            <span class="text-lg sm:text-xl font-extrabold text-emerald-700 tabular-nums" id="overview-income-val">₹0.00</span>
+                        </div>
+
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Outflows</span>
+                            <span class="text-lg sm:text-xl font-extrabold text-slate-900 tabular-nums" id="overview-expense-val">₹0.00</span>
+                        </div>
+
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Available</span>
+                            <span class="text-lg sm:text-xl font-extrabold text-indigo-700 tabular-nums" id="overview-available-val">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic SVG Multi-Curve Chart Container -->
+                    <div class="relative w-full h-44 select-none pt-1" id="dynamic-chart-container">
+                        <svg class="w-full h-full overflow-visible" viewBox="0 0 500 200" id="overview-timeline-svg">
+                            <line x1="30" y1="20" x2="490" y2="20" stroke="#f1f5f9" stroke-width="1.5" stroke-dasharray="4 4" />
+                            <line x1="30" y1="80" x2="490" y2="80" stroke="#f1f5f9" stroke-width="1.5" stroke-dasharray="4 4" />
+                            <line x1="30" y1="140" x2="490" y2="140" stroke="#f1f5f9" stroke-width="1.5" stroke-dasharray="4 4" />
+                            <line x1="30" y1="190" x2="490" y2="190" stroke="#e2e8f0" stroke-width="1.5" />
+                            <path id="svg-inc-curve" d="M 30,150 Q 250,90 490,130" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" />
+                            <path id="svg-exp-curve" d="M 30,170 Q 250,140 490,160" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" />
+                        </svg>
+                        <div class="flex justify-between px-7 text-[11px] font-mono text-slate-400 font-semibold mt-1">
+                            <span>Week 1</span>
+                            <span>Week 2</span>
+                            <span>Week 3</span>
+                            <span>Week 4</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions Ledger (100% Real History) -->
+                <div class="bg-white rounded-3xl p-6 shadow-card border border-slate-200/90 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-base font-extrabold text-slate-950">Recent Transactions</h3>
+                        <button onclick="switchTab('transactions')" class="text-xs font-bold text-slate-900 hover:text-emerald-700 flex items-center gap-0.5 cursor-pointer">
+                            <span>View Full Ledger</span>
+                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        </button>
+                    </div>
+
+                    <!-- Populated dynamically via app.js -->
+                    <div class="space-y-2.5" id="dashboard-tx-list">
+                        <div class="text-xs text-slate-400 italic py-4 text-center">Loading transactions...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMN 3: WEALTH HUB, QUICK ACTIONS & SPENDING (Span 4) -->
+            <div class="lg:col-span-4 space-y-5">
+                
+                <!-- Quick Actions Matrix -->
+                <div class="bg-slate-950 rounded-3xl p-6 text-white shadow-elevated space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-extrabold tracking-wide uppercase text-slate-300">Quick Operations</h3>
+                        <button onclick="switchTab('transfer')" class="size-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+                            <span class="material-symbols-outlined text-base">east</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <button onclick="openTransferModal()" class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer group">
+                            <div class="size-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                <span class="material-symbols-outlined text-lg">send</span>
+                            </div>
+                            <span class="text-[11px] font-bold text-slate-300 group-hover:text-white">Send Money</span>
+                        </button>
+
+                        <button onclick="switchTab('fd')" class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer group">
+                            <div class="size-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                <span class="material-symbols-outlined text-lg">savings</span>
+                            </div>
+                            <span class="text-[11px] font-bold text-slate-300 group-hover:text-white">Open FD</span>
+                        </button>
+
+                        <button onclick="switchTab('loans')" class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer group">
+                            <div class="size-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                <span class="material-symbols-outlined text-lg">real_estate_agent</span>
+                            </div>
+                            <span class="text-[11px] font-bold text-slate-300 group-hover:text-white">Loans</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live 24K Digital Gold Spot Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-card border border-slate-200/90 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="size-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+                                24K
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-extrabold text-slate-900">Digital Gold Vault</h4>
+                                <span class="text-[10px] font-mono text-slate-400">99.9% Purity • Live Rates</span>
+                            </div>
+                        </div>
+                        <span class="text-xs font-mono font-extrabold text-amber-800" id="gold-live-buy-rate">₹7,620.50/gm</span>
+                    </div>
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs font-semibold">
+                        <span class="text-slate-500">Vault Holdings:</span>
+                        <span class="font-mono font-extrabold text-slate-900" id="inv-gold-grams-disp">0.0000g Gold held</span>
+                    </div>
+                    <button onclick="switchTab('gold')" class="w-full py-2.5 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer">
+                        <span>Trade Digital Gold</span>
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                    </button>
+                </div>
+
+                <!-- Spending Breakdown Donut Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-card border border-slate-200/90 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-extrabold text-slate-950">Expense Categorization</h3>
+                        <span class="text-[10px] font-mono font-bold text-slate-400">All Time</span>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-4 items-center pt-1">
+                        <div class="col-span-5 relative flex items-center justify-center">
+                            <svg class="size-28 -rotate-90 transform" viewBox="0 0 36 36">
+                                <path class="text-slate-100" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path id="donut-seg-1" class="text-emerald-500 transition-all duration-700" stroke-width="3.5" stroke-dasharray="0 100" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path id="donut-seg-2" class="text-blue-500 transition-all duration-700" stroke-width="3.5" stroke-dasharray="0 100" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path id="donut-seg-3" class="text-amber-400 transition-all duration-700" stroke-width="3.5" stroke-dasharray="0 100" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                <span class="text-[8px] font-mono uppercase font-bold text-slate-400">Total</span>
+                                <span class="text-xs font-extrabold text-slate-900 font-mono" id="donut-total-val">₹0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="col-span-7 space-y-2" id="spending-legend-container">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ════════════════════════ TAB VIEW 2: TRANSACTIONS LEDGER ════════════════════════ -->
+        <section id="view-transactions" class="tab-view-content hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-card border border-slate-200/90 space-y-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                    <div>
+                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Account Statement</span>
+                        <h2 class="text-2xl font-extrabold text-slate-950 tracking-tight">Full Transaction Ledger</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Comprehensive audit trail of all credits, debits, UPI transfers &amp; investments</p>
+                    </div>
+                    <div class="flex items-center gap-2.5">
+                        <button onclick="downloadStatementPDF()" class="px-4 py-2 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+                            <span class="material-symbols-outlined text-sm">download</span>
+                            <span>Download PDF Statement</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto rounded-2xl border border-slate-200/80">
+                    <table class="w-full text-left text-xs font-medium">
+                        <thead class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200/80 text-[10px]">
+                            <tr>
+                                <th class="px-5 py-3.5">Transaction Type &amp; Remarks</th>
+                                <th class="px-5 py-3.5">Date &amp; Time</th>
+                                <th class="px-5 py-3.5 text-right">Amount</th>
+                                <th class="px-5 py-3.5 text-right">Closing Balance</th>
+                                <th class="px-5 py-3.5 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="full-transactions-tbody" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════════ TAB VIEW 3: CASHFLOW ANALYTICS ════════════════════════ -->
+        <section id="view-analytics" class="tab-view-content hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-card border border-slate-200/90 space-y-6">
+                <div>
+                    <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Financial Intelligence</span>
+                    <h2 class="text-2xl font-extrabold text-slate-950 tracking-tight">Cashflow &amp; Net Worth Analytics</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Real-time breakdown of inflows, outflows, liquidity and active obligations</p>
+                </div>
+
+                <!-- KPI Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="analytics-kpi-grid">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- Full Width Analysis -->
+                <div class="p-6 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-3">
+                    <h4 class="text-sm font-extrabold text-slate-900">Ledger Health &amp; Solvency</h4>
+                    <p class="text-xs text-slate-600 leading-relaxed font-medium">
+                        Your account is audited against zero-drift atomic balance constraints. All interest accruals and fixed asset payouts are locked under strict reserve guarantees.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════════ TAB VIEW 4: LOANS PORTFOLIO ════════════════════════ -->
+        <section id="view-loans" class="tab-view-content hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-card border border-slate-200/90 space-y-8">
+                <div>
+                    <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Credit Lines &amp; Underwriting</span>
+                    <h2 class="text-2xl font-extrabold text-slate-950 tracking-tight">Instant Credit Lines &amp; Personal Loans</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Pre-qualified underwriting with real-time CIBIL verification and instant disbursement</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <!-- Apply Loan Form with KYC Underwriting -->
+                    <div class="lg:col-span-6 p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-5">
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+                            <h3 class="text-sm font-extrabold text-slate-950">Pre-Underwritten Loan Application</h3>
+                            <span class="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">Instant Sanction</span>
+                        </div>
+
+                        <form onsubmit="handleApplyLoan(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Employment Type</label>
+                                <select id="loan-employment-type" class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950">
+                                    <option value="Salaried">Salaried (Corporate / MNC / Govt)</option>
+                                    <option value="Self-Employed">Self-Employed Professional</option>
+                                    <option value="Business Owner">Business Owner / Partner</option>
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Monthly Net Income (₹)</label>
+                                    <input type="number" id="loan-monthly-income" required min="5000" placeholder="e.g. 75000"
+                                        class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">CIBIL Credit Score</label>
+                                    <input type="number" id="loan-cibil-score" required min="300" max="900" placeholder="750 (Min 600)"
+                                        class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">PAN Card Number (10 Chars)</label>
+                                <input type="text" id="loan-pan-number" required maxlength="10" placeholder="ABCDE1234F"
+                                    class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950" />
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Required Loan Amount (₹)</label>
+                                    <input type="number" id="loan-apply-amount" required min="1000" placeholder="e.g. 50000"
+                                        class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Purpose of Loan</label>
+                                    <select id="loan-apply-purpose" class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950">
+                                        <option value="Personal Loan">Personal Loan</option>
+                                        <option value="Business Expansion">Business Expansion</option>
+                                        <option value="Medical Emergency">Medical Emergency</option>
+                                        <option value="Education">Higher Education</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full h-12 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95">
+                                <span class="material-symbols-outlined text-base">verified</span>
+                                <span>Verify Eligibility &amp; Disburse Loan</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Active Loan & Repayment Panel -->
+                    <div class="lg:col-span-6 space-y-4">
+                        <div class="p-6 rounded-3xl bg-slate-950 text-white shadow-elevated space-y-4">
+                            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Active Loan Obligation</span>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-extrabold text-white tabular-nums font-mono" id="loans-kpi-val">₹0.00</span>
+                                <span class="text-xs text-slate-400">@ 8.5% APR</span>
+                            </div>
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-slate-200 border border-white/10" id="loans-status-badge">
+                                0 Active Obligations
+                            </span>
+                        </div>
+
+                        <!-- Loan Repayment Form -->
+                        <div class="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-subtle space-y-4">
+                            <h4 class="text-xs font-extrabold text-slate-950 uppercase tracking-wider">Repay Outstanding Loan</h4>
+                            <div class="flex gap-2">
+                                <input type="number" id="loan-repay-amount" min="1" placeholder="Repayment Amount (₹)"
+                                    class="flex-1 h-11 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950" />
+                                <button onclick="handleRepayLoan()" class="px-5 h-11 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer">
+                                    Repay
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loan History Table -->
+                <div class="space-y-3">
+                    <h3 class="text-sm font-extrabold text-slate-950">Loan Portfolio Ledger</h3>
+                    <div class="overflow-x-auto rounded-2xl border border-slate-200/80">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-600 font-bold uppercase text-[10px]">
+                                <tr>
+                                    <th class="px-5 py-3">Loan ID</th>
+                                    <th class="px-5 py-3">Type</th>
+                                    <th class="px-5 py-3">Sanction Date</th>
+                                    <th class="px-5 py-3 text-right">Sanction Amount</th>
+                                    <th class="px-5 py-3 text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="loans-history-tbody" class="divide-y divide-slate-100">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════════ TAB VIEW 5: WEALTH & INVESTMENTS HUB (FD, MUTUAL FUNDS, SIP, GOLD) ════════════════════════ -->
+        <section id="view-invest" class="tab-view-content hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-card border border-slate-200/90 space-y-6">
+                
+                <!-- Header & Sub-Nav Switcher -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                    <div>
+                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Wealth &amp; Capital Markets</span>
+                        <h2 class="text-2xl font-extrabold text-slate-950 tracking-tight">Investments &amp; Wealth Hub</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Fixed Deposits (FD), Systematic Investment Plans (SIP), Direct Mutual Funds &amp; 24K Digital Gold</p>
+                    </div>
+
+                    <!-- Wealth Sub-Tabs Switcher -->
+                    <div class="bg-slate-100 p-1 rounded-2xl flex items-center gap-1">
+                        <button onclick="switchInvestSubTab('deposits')" id="subtab-btn-deposits" class="invest-subtab-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-900 shadow-xs transition-all flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">account_balance</span>
+                            <span>Fixed Deposits (FD)</span>
+                        </button>
+                        <button onclick="switchInvestSubTab('sip')" id="subtab-btn-sip" class="invest-subtab-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">show_chart</span>
+                            <span>Mutual Funds &amp; SIP</span>
+                        </button>
+                        <button onclick="switchInvestSubTab('gold')" id="subtab-btn-gold" class="invest-subtab-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">savings</span>
+                            <span>24K Digital Gold</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Portfolio Summary Metrics -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Valuation</span>
+                        <span class="text-xl font-extrabold text-slate-950 tabular-nums font-mono" id="inv-total-valuation">₹0.00</span>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Invested</span>
+                        <span class="text-xl font-extrabold text-slate-700 tabular-nums font-mono" id="inv-total-invested">₹0.00</span>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Unrealized Gain</span>
+                        <span class="text-xl font-extrabold text-emerald-700 tabular-nums font-mono" id="inv-overall-gain">+₹0.00 (0.00%)</span>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Active Holdings</span>
+                        <span class="text-xl font-extrabold text-slate-900 tabular-nums font-mono" id="inv-mf-active-count">0 Active</span>
+                    </div>
+                </div>
+
+                <!-- ════════ SUBVIEW: MUTUAL FUNDS & SIP ════════ -->
+                <div id="invest-subview-sip" class="invest-subview hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        <!-- Market Mutual Funds Grid -->
+                        <div class="lg:col-span-8 space-y-4">
+                            <h3 class="text-sm font-extrabold text-slate-950 uppercase tracking-wider">Recommended Direct Mutual Funds</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="market-funds-grid">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Start SIP / Lump Sum Panel -->
+                        <div class="lg:col-span-4 p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-4" id="form-create-sip">
+                            <h4 class="text-xs font-extrabold text-slate-950 uppercase tracking-wider">Start Systematic Investment (SIP)</h4>
+                            <form onsubmit="handleCreateSIP(event)" class="space-y-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Select Scheme</label>
+                                    <select id="sip-fund-select" class="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950">
+                                        <option value="MF-NIFTY50">Credence NIFTY 50 Bluechip Index Fund</option>
+                                        <option value="MF-FLEXICAP">Credence Flexi Cap Opportunities Fund</option>
+                                        <option value="MF-SMALLCAP">Credence Small Cap Alpha Fund</option>
+                                        <option value="MF-ELSS80C">Credence ELSS Tax Saver 80C Fund</option>
+                                        <option value="MF-TECHAI">Credence Digital Tech &amp; AI Growth Fund</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Investment Type</label>
+                                        <select id="sip-type-select" class="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950">
+                                            <option value="Monthly SIP">Monthly SIP</option>
+                                            <option value="Lump Sum">Lump Sum</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Amount (₹)</label>
+                                        <input type="number" id="sip-amount-input" min="500" step="500" placeholder="Min ₹500" required
+                                            class="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950" />
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full h-11 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer">
+                                    <span>Initiate Investment</span>
+                                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Active SIP Portfolio Table -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-extrabold text-slate-950 uppercase tracking-wider">Active Portfolio &amp; Folios</h4>
+                        <div class="overflow-x-auto rounded-2xl border border-slate-200/80">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 text-slate-600 font-bold uppercase text-[10px]">
+                                    <tr>
+                                        <th class="px-4 py-3">Fund Scheme</th>
+                                        <th class="px-4 py-3 text-right">Invested Capital</th>
+                                        <th class="px-4 py-3 text-right">Current Value</th>
+                                        <th class="px-4 py-3 text-center">Status</th>
+                                        <th class="px-4 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-sips-tbody" class="divide-y divide-slate-100">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ════════ SUBVIEW: 24K DIGITAL GOLD ════════ -->
+                <div id="invest-subview-gold" class="invest-subview hidden space-y-6">
+                    <!-- Live Spot Rates Ticker -->
+                    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="size-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                                <span class="material-symbols-outlined text-base">savings</span>
+                            </span>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="text-xs font-extrabold text-slate-900">24K 99.9% Pure Insured Digital Gold</h4>
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">Live Spot Rate</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500">Stored in IDBI-Trustee insured physical vaults with zero storage fees</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 text-xs">
+                            <div class="text-right">
+                                <span class="text-[10px] uppercase font-bold text-slate-400 block">Buy Rate (per gm)</span>
+                                <span class="font-mono font-extrabold text-amber-900 text-sm" id="gold-live-buy-rate">₹7,620.50/gm</span>
+                            </div>
+                            <div class="h-8 w-px bg-amber-200"></div>
+                            <div class="text-right">
+                                <span class="text-[10px] uppercase font-bold text-slate-400 block">Sell Rate (per gm)</span>
+                                <span class="font-mono font-extrabold text-slate-700 text-sm" id="gold-live-sell-rate">₹7,544.30/gm</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        <!-- Gold Vault Overview -->
+                        <div class="lg:col-span-12 p-6 rounded-3xl bg-slate-950 text-white shadow-elevated grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <div>
+                                <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400 block mb-1">Total Vault Weight</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-3xl font-extrabold text-white tabular-nums font-mono" id="gold-vault-grams">0.0000 g</span>
+                                    <span class="text-xs text-slate-400">24K Pure</span>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Current Valuation</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-3xl font-extrabold text-emerald-400 tabular-nums font-mono" id="gold-vault-val">₹0.00</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col justify-center">
+                                <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Vault Assurance</span>
+                                <p class="text-xs text-slate-300 font-medium">100% physically backed by Swiss/LBMA accredited refiners with instant T+0 liquidation.</p>
+                            </div>
+                        </div>
+
+                        <!-- Buy Gold Card -->
+                        <div class="lg:col-span-6 p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
+                            <div class="flex items-center justify-between border-b border-slate-200/80 pb-3">
+                                <h4 class="text-xs font-extrabold text-slate-950 uppercase tracking-wider flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-amber-600 text-base">add_circle</span>
+                                    <span>Buy 24K Digital Gold</span>
+                                </h4>
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Instant Credit</span>
+                            </div>
+
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Buy in Grams</label>
+                                    <input type="number" id="gold-buy-grams" step="0.0001" min="0.001" placeholder="e.g. 1.5000"
+                                        oninput="updateGoldBuyCalc('grams')"
+                                        class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950" />
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">OR Buy in ₹ Amount (Min ₹100)</label>
+                                    <input type="number" id="gold-buy-amount" min="100" placeholder="e.g. 5000"
+                                        oninput="updateGoldBuyCalc('amount')"
+                                        class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950" />
+                                </div>
+
+                                <!-- Quick Preset Buttons -->
+                                <div class="flex flex-wrap gap-1.5 pt-1">
+                                    <button type="button" onclick="setGoldBuyPreset(500)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors">+₹500</button>
+                                    <button type="button" onclick="setGoldBuyPreset(1000)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors">+₹1,000</button>
+                                    <button type="button" onclick="setGoldBuyPreset(5000)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors">+₹5,000</button>
+                                    <button type="button" onclick="setGoldBuyGramsPreset(1)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors">+1 Gram</button>
+                                    <button type="button" onclick="setGoldBuyGramsPreset(5)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors">+5 Grams</button>
+                                </div>
+
+                                <button onclick="handleGoldBuy(event)" class="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98">
+                                    <span class="material-symbols-outlined text-base">savings</span>
+                                    <span>Purchase 24K Gold</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sell / Liquidate Gold Card -->
+                        <div class="lg:col-span-6 p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
+                            <div class="flex items-center justify-between border-b border-slate-200/80 pb-3">
+                                <h4 class="text-xs font-extrabold text-slate-950 uppercase tracking-wider flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-slate-700 text-base">sell</span>
+                                    <span>Liquidate / Sell Gold</span>
+                                </h4>
+                                <span class="text-[10px] font-bold text-slate-700 bg-slate-200/70 px-2 py-0.5 rounded-full">Instant Payout</span>
+                            </div>
+
+                            <div class="space-y-3">
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="block text-[11px] font-bold text-slate-700">Sell in Grams</label>
+                                        <button type="button" onclick="setGoldSellMax()" class="text-[10px] font-extrabold text-amber-700 hover:underline">Sell 100% Vault Max</button>
+                                    </div>
+                                    <input type="number" id="gold-sell-grams" step="0.0001" min="0.0001" placeholder="Grams to sell"
+                                        oninput="updateGoldSellCalc('grams')"
+                                        class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950" />
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">OR Sell by ₹ Amount</label>
+                                    <input type="number" id="gold-sell-amount" min="10" placeholder="Estimated payout amount"
+                                        oninput="updateGoldSellCalc('amount')"
+                                        class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-950" />
+                                </div>
+
+                                <div class="p-3 bg-white rounded-xl border border-slate-200 text-xs flex justify-between items-center">
+                                    <span class="text-slate-500 text-[11px]">Payout Destination:</span>
+                                    <span class="font-bold text-slate-900">Primary Bank Account (Instant)</span>
+                                </div>
+
+                                <button onclick="handleGoldSell(event)" class="w-full h-11 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98">
+                                    <span class="material-symbols-outlined text-base">payments</span>
+                                    <span>Sell &amp; Credit to Account</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ════════ SUBVIEW: FIXED DEPOSITS & RD DESK ════════ -->
+                <div id="invest-subview-deposits" class="invest-subview space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        <!-- Create FD -->
+                        <div class="lg:col-span-6 p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
+                            <h4 class="text-xs font-extrabold text-slate-950 uppercase tracking-wider">Open High-Yield Fixed Deposit (7.2% APY)</h4>
+                            <form onsubmit="handleCreateFD(event)" class="space-y-3">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Principal Deposit (₹)</label>
+                                        <input type="number" id="fd-create-amount" min="1000" placeholder="Min ₹1,000" required
+                                            class="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-xs font-mono font-bold text-slate-900" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Tenure</label>
+                                        <select id="fd-create-tenure" class="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                                            <option value="12">12 Months (7.2% APY)</option>
+                                            <option value="24">24 Months (7.5% APY)</option>
+                                            <option value="36">36 Months (7.8% APY)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full h-11 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer">
+                                    Lock Deposit &amp; Issue Receipt
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Active FD & Withdrawal -->
+                        <div class="lg:col-span-6 p-6 rounded-3xl bg-slate-950 text-white shadow-elevated space-y-4">
+                            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Active Fixed Deposit</span>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-extrabold text-white tabular-nums font-mono" id="fd-active-principal">₹0.00</span>
+                                <span class="text-xs text-emerald-400 font-bold" id="fd-active-tenure">No Active Deposit</span>
+                            </div>
+                            <button onclick="handleWithdrawFD()" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl border border-white/10 transition-all cursor-pointer">
+                                Liquidate / Withdraw FD
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ════════════════════════ TAB VIEW 6: TRANSFER & PAYMENTS ════════════════════════ -->
+        <section id="view-transfer" class="tab-view-content hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-card border border-slate-200/90 space-y-6">
+                <div>
+                    <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Payment Rail</span>
+                    <h2 class="text-2xl font-extrabold text-slate-950 tracking-tight">Funds Transfer &amp; Bill Desk</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Instant atomic transfers via Netbanking, Virtual UPI ID, or Debit Card rail</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <div class="lg:col-span-6 p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
+                        <h3 class="text-xs font-extrabold text-slate-950 uppercase tracking-wider">Direct Account Transfer</h3>
+                        <form onsubmit="handleDirectTransfer(event)" class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Beneficiary Account Number</label>
+                                <input type="text" id="transfer-to-acc" required maxlength="14" placeholder="14-digit Account #"
+                                    class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Transfer Amount (₹)</label>
+                                <input type="number" id="transfer-amount" required min="1" placeholder="e.g. 5000"
+                                    class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Transfer Method</label>
+                                <select id="transfer-method" class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-bold text-slate-900">
+                                    <option value="IMPS">IMPS (Instant 24x7)</option>
+                                    <option value="NEFT">NEFT (Direct Clearing)</option>
+                                    <option value="RTGS">RTGS (High Value Settlement)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="w-full h-12 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                                <span class="material-symbols-outlined text-sm">send</span>
+                                <span>Execute Fund Transfer</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="lg:col-span-6 p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
+                        <h3 class="text-xs font-extrabold text-slate-950 uppercase tracking-wider">Utility &amp; Merchant Bill Desk</h3>
+                        <form onsubmit="handleBillPay(event)" class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Biller / Service Provider Category</label>
+                                <select id="bill-company" onchange="window.toggleCustomBiller(this.value)" class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500/30">
+                                    <option value="Electricity Board">State Electricity Board</option>
+                                    <option value="Amazon India">Amazon Online POS</option>
+                                    <option value="Reliance Jio">Jio Fiber &amp; Telecom</option>
+                                    <option value="Water Municipal Board">Municipal Water Authority</option>
+                                    <option value="Gas / PNG Utility">Indraprastha / City Gas Utility</option>
+                                    <option value="Broadband & WiFi">Fiber Broadband &amp; Cable</option>
+                                    <option value="Credit Card Settlement">Credit Card Bill Payment</option>
+                                    <option value="Others">Others / Custom Utility or Merchant</option>
+                                </select>
+                            </div>
+                            <div id="bill-custom-wrapper" class="hidden">
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Custom Biller / Merchant Name</label>
+                                <input type="text" id="bill-custom-name" placeholder="e.g. Netflix, School Fees, Rent, Hospital, OTT"
+                                    class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500/30" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Invoice / Bill Amount (₹)</label>
+                                <input type="number" id="bill-amount" required min="1" placeholder="e.g. 1200"
+                                    class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500/30" />
+                            </div>
+                            <button type="submit" class="w-full h-12 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                                <span class="material-symbols-outlined text-sm">bolt</span>
+                                <span>Pay Utility Bill</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════════ TAB VIEW 7: REPORTS & STATEMENTS ════════════════════════ -->
+        <section id="view-reports" class="tab-view-content hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-card border border-slate-200/90 space-y-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                    <div>
+                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Official Tax Statements</span>
+                        <h2 class="text-2xl font-extrabold text-slate-950 tracking-tight">Financial Reports &amp; Statements</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Download stamp-verified bank certificates and tax ledgers</p>
+                    </div>
+                    <button onclick="downloadStatementPDF()" class="px-5 py-2.5 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+                        <span class="material-symbols-outlined text-sm">download</span>
+                        <span>Generate Certified PDF</span>
+                    </button>
+                </div>
+
+                <div class="p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-3">
+                    <h4 class="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Account Certificate Metadata</h4>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                        <div><span class="text-slate-400 block text-[10px]">Account Name:</span> <strong id="reports-acc-name">--</strong></div>
+                        <div><span class="text-slate-400 block text-[10px]">Customer ID (9-Digit):</span> <strong class="font-mono text-indigo-700 font-bold" id="reports-cust-id">--</strong></div>
+                        <div><span class="text-slate-400 block text-[10px]">Account Number:</span> <strong class="font-mono" id="reports-acc-num">--</strong></div>
+                        <div><span class="text-slate-400 block text-[10px]">Account Classification:</span> <strong class="font-bold text-slate-900" id="reports-acc-type">Savings Account</strong></div>
+                        <div><span class="text-slate-400 block text-[10px]">Tax Registration:</span> <strong>M-IV/ST/BANK/2001</strong></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════════ TAB VIEW 8: CARDS & SETTINGS ════════════════════════ -->
+        <section id="view-settings" class="tab-view-content hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-card border border-slate-200/90 space-y-8">
+                <div>
+                    <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Security &amp; Hardware Tokens</span>
+                    <h2 class="text-2xl font-extrabold text-slate-950 tracking-tight">Cards &amp; Security Settings</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Manage your debit card, ATM PIN, contactless limits and account security</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <!-- Obsidian Debit Card -->
+                    <div class="lg:col-span-6 bg-slate-950 rounded-3xl p-8 text-white shadow-elevated space-y-6">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold tracking-wider text-slate-300 uppercase">Visa Platinum Debit</span>
+                            <span class="px-3 py-1 rounded-full text-xs font-bold border" id="settings-card-badge">Active Card</span>
+                        </div>
+                        <div class="font-mono text-xl tracking-[0.25em] font-semibold text-slate-100" id="settings-card-fullnumber">
+                            •••• •••• •••• ----
+                        </div>
+                        <div class="flex justify-between items-end text-xs pt-4 border-t border-white/10 font-mono">
+                            <div><span class="text-[9px] text-slate-400 block uppercase">Card Holder</span><strong class="text-slate-200" id="settings-card-name">--</strong></div>
+                            <div><span class="text-[9px] text-slate-400 block uppercase">Expires</span><strong class="text-slate-200" id="settings-card-exp">--/--</strong></div>
+                            <div><span class="text-[9px] text-slate-400 block uppercase">CVV</span><strong class="text-slate-200" id="settings-card-cvv">•••</strong></div>
+                        </div>
+                    </div>
+
+                    <!-- Security Actions & Banking Services -->
+                    <div class="lg:col-span-6 space-y-4">
+                        <div class="p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
+                            <h4 class="text-xs font-extrabold text-slate-950 uppercase tracking-wider">Physical Banking Hardware &amp; Services</h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="openOrderPhysicalCardModal()" class="py-3 px-3 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-98">
+                                    <span class="material-symbols-outlined text-base">credit_card</span>
+                                    <span>Order Physical Card</span>
+                                </button>
+                                <button onclick="openOrderChequeBookModal()" class="py-3 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-98">
+                                    <span class="material-symbols-outlined text-base">menu_book</span>
+                                    <span>Order Cheque Book</span>
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 pt-1 border-t border-slate-200/60">
+                                <button onclick="handleBlockCard()" class="py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs rounded-xl transition-all cursor-pointer">
+                                    Freeze / Block Card
+                                </button>
+                                <button onclick="openIssueCardModal()" class="py-2.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-all cursor-pointer">
+                                    Virtual Card Reissue
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
+                            <h4 class="text-xs font-extrabold text-slate-950 uppercase tracking-wider">Change ATM / Account PIN</h4>
+                            <div class="flex gap-2">
+                                <input type="password" id="settings-new-pin" maxlength="4" placeholder="New 4-digit PIN"
+                                    class="flex-1 h-11 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 text-center tracking-[0.4em]" />
+                                <button onclick="handleUpdatePin()" class="px-5 h-11 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer">
+                                    Update PIN
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deliveries & Dispatch Tracking Ledger -->
+                <div class="space-y-3 pt-2">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-extrabold text-slate-950">Banking Deliveries &amp; Postal Dispatches</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Live tracking for physical debit cards and CTS-2010 cheque books • Delivered in 2-3 working days</p>
+                        </div>
+                        <span class="text-[10px] font-mono font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200">SpeedPost / BlueDart Rail</span>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-2xl border border-slate-200/80">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-600 font-bold uppercase text-[10px]">
+                                <tr>
+                                    <th class="px-5 py-3">Order ID &amp; Item</th>
+                                    <th class="px-5 py-3">Specification</th>
+                                    <th class="px-5 py-3">Dispatch Date</th>
+                                    <th class="px-5 py-3 font-mono">Tracking Reference</th>
+                                    <th class="px-5 py-3 text-center">Courier Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dispatch-orders-tbody" class="divide-y divide-slate-100">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- App JavaScript Controller -->
+    <script src="/app.js"></script>
+</body>
+</html>

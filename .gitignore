@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# C++ Build Output
+*.exe
+*.out
+*.o
+*.obj
+*.dll
+*.class
+
+# Auto-generated project data files
+user_profiles.json
+bank_data.json
+
+# Generated Statement PDFs
+*.pdf
+statements/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE and Editor Directories
+.vscode/
+.idea/
+*.swp
+*.swo

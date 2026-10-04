@@ -1,0 +1,41 @@
+{
+    "13083372018463": {
+        "sips": [],
+        "ipos": [],
+        "rds": [],
+        "gold": {
+            "grams": 0.0,
+            "avg_buy_price": 7620.5,
+            "total_invested": 0.0,
+            "current_rate": 7620.5,
+            "current_value": 0.0,
+            "returns_pct": 0.0
+        }
+    },
+    "40273146502136": {
+        "sips": [],
+        "ipos": [],
+        "rds": [],
+        "gold": {
+            "grams": 0.0,
+            "avg_buy_price": 7620.5,
+            "total_invested": 0.0,
+            "current_rate": 7620.5,
+            "current_value": 0.0,
+            "returns_pct": 0.0
+        }
+    },
+    "99999999999999": {
+        "sips": [],
+        "ipos": [],
+        "rds": [],
+        "gold": {
+            "grams": 0.0,
+            "avg_buy_price": 7620.5,
+            "total_invested": 0.0,
+            "current_rate": 7620.5,
+            "current_value": 0.0,
+            "returns_pct": 0.0
+        }
+    }
+}
