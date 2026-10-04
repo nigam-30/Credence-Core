@@ -1,5 +1,12 @@
 # Credence Core — Institutional Digital Banking & Wealth Terminal
 
+[![Core Engine](https://img.shields.io/badge/CORE%20ENGINE-C%2B%2B20-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)](https://github.com/nigam-30/Credence-Core)
+[![Backend](https://img.shields.io/badge/BACKEND-PYTHON%20FLASK-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://github.com/nigam-30/Credence-Core)
+[![UI Framework](https://img.shields.io/badge/UI-TAILWIND%20CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://github.com/nigam-30/Credence-Core)
+[![Architecture](https://img.shields.io/badge/ARCHITECTURE-ATOMIC%20LEDGER-F59E0B?style=for-the-badge)](https://github.com/nigam-30/Credence-Core)
+[![Deployment](https://img.shields.io/badge/DEPLOYMENT-VERCEL%20READY-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://github.com/nigam-30/Credence-Core)
+[![Statements](https://img.shields.io/badge/REPORTS-CERTIFIED%20PDF-E11D48?style=for-the-badge)](https://github.com/nigam-30/Credence-Core)
+
 **Credence Core** is an institutional-grade, full-stack digital banking, wealth management, and core ledger terminal. It combines a high-performance C++ core banking ledger backend with an ultra-responsive web terminal built using Python Flask, vanilla modern JavaScript, and Tailwind CSS.
 
 ---
