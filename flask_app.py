@@ -1,3 +1,4 @@
+import io
 import os
 import subprocess
 import threading
@@ -15,46 +16,61 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 import datetime
 import random
 
-app = Flask(__name__, static_folder=".", static_url_path="")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+IS_SERVERLESS = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") or not os.access(BASE_DIR, os.W_OK))
+DATA_DIR = "/tmp" if IS_SERVERLESS else BASE_DIR
 
-PROFILES_JSON = "user_profiles.json"
-BANK_DATA_JSON = "bank_data.json"
+app = Flask(__name__, static_folder=BASE_DIR, static_url_path="")
+
+PROFILES_JSON = os.path.join(DATA_DIR, "user_profiles.json")
+BANK_DATA_JSON = os.path.join(DATA_DIR, "bank_data.json")
+INVESTMENTS_JSON = os.path.join(DATA_DIR, "user_investments.json")
 
 def load_profiles():
     if not os.path.exists(PROFILES_JSON):
-        with open(PROFILES_JSON, "w") as f:
-            json.dump({}, f)
+        try:
+            with open(PROFILES_JSON, "w") as f:
+                json.dump({}, f)
+        except Exception:
+            pass
         return {}
     try:
         with open(PROFILES_JSON, "r") as f:
             return json.load(f)
-    except:
+    except Exception:
         return {}
 
 def save_profiles(data):
-    tmp_path = PROFILES_JSON + ".tmp"
-    with open(tmp_path, "w") as f:
-        json.dump(data, f, indent=4)
-    os.replace(tmp_path, PROFILES_JSON)
-
-INVESTMENTS_JSON = "user_investments.json"
+    try:
+        tmp_path = PROFILES_JSON + ".tmp"
+        with open(tmp_path, "w") as f:
+            json.dump(data, f, indent=4)
+        os.replace(tmp_path, PROFILES_JSON)
+    except Exception:
+        pass
 
 def load_investments():
     if not os.path.exists(INVESTMENTS_JSON):
-        with open(INVESTMENTS_JSON, "w") as f:
-            json.dump({}, f)
+        try:
+            with open(INVESTMENTS_JSON, "w") as f:
+                json.dump({}, f)
+        except Exception:
+            pass
         return {}
     try:
         with open(INVESTMENTS_JSON, "r") as f:
             return json.load(f)
-    except:
+    except Exception:
         return {}
 
 def save_investments(data):
-    tmp_path = INVESTMENTS_JSON + ".tmp"
-    with open(tmp_path, "w") as f:
-        json.dump(data, f, indent=4)
-    os.replace(tmp_path, INVESTMENTS_JSON)
+    try:
+        tmp_path = INVESTMENTS_JSON + ".tmp"
+        with open(tmp_path, "w") as f:
+            json.dump(data, f, indent=4)
+        os.replace(tmp_path, INVESTMENTS_JSON)
+    except Exception:
+        pass
 
 def run_cpp_command(bank_instance, choice, inputs):
     with bank_instance.lock:
@@ -76,8 +92,8 @@ def parse_output(out):
     return filtered_out
 
 def generate_pdf(acc_no, data):
-    filename = f"statement_{acc_no}.pdf"
-    doc = SimpleDocTemplate(filename, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=100)
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=100)
     elements = []
     
     styles = getSampleStyleSheet()
@@ -317,7 +333,10 @@ def generate_pdf(acc_no, data):
         canvas.restoreState()
     
     doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
-    return filename
+    buffer.seek(0)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
 
 def get_or_create_account_history(acc_no, current_balance, name="Bank Customer"):
     history = []
@@ -326,7 +345,7 @@ def get_or_create_account_history(acc_no, current_balance, name="Bank Customer")
             with open(BANK_DATA_JSON, "r") as f:
                 bd = json.load(f)
                 history = bd.get("accounts", {}).get(str(acc_no), {}).get("history", [])
-        except:
+        except Exception:
             history = []
 
     bal_num = float(str(current_balance).replace(',', ''))
@@ -338,15 +357,18 @@ def get_or_create_account_history(acc_no, current_balance, name="Bank Customer")
         ]
 
         # Save to bank_data.json
-        data = {}
-        if os.path.exists(BANK_DATA_JSON):
-            try:
-                with open(BANK_DATA_JSON, "r") as f: data = json.load(f)
-            except: pass
-        if "accounts" not in data: data["accounts"] = {}
-        data["accounts"][str(acc_no)] = {"history": history}
-        with open(BANK_DATA_JSON, "w") as f:
-            json.dump(data, f, indent=4)
+        try:
+            data = {}
+            if os.path.exists(BANK_DATA_JSON):
+                try:
+                    with open(BANK_DATA_JSON, "r") as f: data = json.load(f)
+                except Exception: pass
+            if "accounts" not in data: data["accounts"] = {}
+            data["accounts"][str(acc_no)] = {"history": history}
+            with open(BANK_DATA_JSON, "w") as f:
+                json.dump(data, f, indent=4)
+        except Exception:
+            pass
 
     return history
 
@@ -360,37 +382,45 @@ class BankBackend:
         self.start_process()
 
     def compile_if_missing(self):
-        exe_file = "bank_system.exe" if os.name == 'nt' else "bank_system"
+        if IS_SERVERLESS or os.environ.get("VERCEL"):
+            self.use_fallback = True
+            return
+        exe_file = os.path.join(BASE_DIR, "bank_system.exe" if os.name == 'nt' else "bank_system")
         if not os.path.exists(exe_file):
             try:
                 print("Compiling " + exe_file + "...")
                 subprocess.run(["g++", "main.cpp", "account.cpp", "credit.cpp", "debit.cpp", 
                                 "fd.cpp", "loan.cpp", "report.cpp", "upi.cpp", "utils.cpp", "cheque.cpp", "globals.cpp", 
-                                "-o", exe_file], check=True)
+                                "-o", exe_file], cwd=BASE_DIR, check=True)
             except Exception as e:
                 print(f"Compilation skipped/failed ({e}). Switching to pure-Python engine.")
+                self.use_fallback = True
 
     def start_process(self):
         # WIPE PERSISTENT FILES ON BOOT SO THE SERVER STARTS FRESH AS REQUESTED
         if os.path.exists(BANK_DATA_JSON):
             try: os.remove(BANK_DATA_JSON)
-            except: pass
+            except Exception: pass
         if os.path.exists(PROFILES_JSON):
             try: os.remove(PROFILES_JSON)
-            except: pass
+            except Exception: pass
             
         self.user_details_db = {}
-        self.compile_if_missing()
+        try:
+            self.compile_if_missing()
+        except Exception:
+            self.use_fallback = True
 
-        exe_file = "bank_system.exe" if os.name == 'nt' else "./bank_system"
-        if os.path.exists(exe_file):
+        exe_file = os.path.join(BASE_DIR, "bank_system.exe" if os.name == 'nt' else "./bank_system")
+        if not self.use_fallback and os.path.exists(exe_file):
             try:
                 self.proc = subprocess.Popen(
                     [exe_file],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     text=True,
-                    bufsize=1
+                    bufsize=1,
+                    cwd=BASE_DIR
                 )
                 if self.proc.stdout and self.proc.stdin:
                     self.stdout = self.proc.stdout
@@ -402,6 +432,7 @@ class BankBackend:
                 print(f"Failed to start binary ({e}). Using Python serverless engine.")
         
         self.use_fallback = True
+        self.proc = None
         self.proc = None
 
     def _read_until(self, marker, timeout=5.0):
@@ -728,7 +759,9 @@ def cards():
 
 @app.route("/app.js")
 def serve_app_js():
-    target_dir = "." if os.path.exists("app.js") else ("ui_code" if os.path.exists(os.path.join("ui_code", "app.js")) else ".")
+    target_dir = BASE_DIR if os.path.exists(os.path.join(BASE_DIR, "app.js")) else (
+        os.path.join(BASE_DIR, "ui_code") if os.path.exists(os.path.join(BASE_DIR, "ui_code", "app.js")) else BASE_DIR
+    )
     response = send_from_directory(target_dir, "app.js", mimetype="application/javascript")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
@@ -736,11 +769,10 @@ def serve_app_js():
     return response
 
 def send_ui_file(filename):
-    if os.path.exists(filename):
-        filepath = filename
-    elif os.path.exists(os.path.join("ui_code", filename)):
-        filepath = os.path.join("ui_code", filename)
-    else:
+    filepath = os.path.join(BASE_DIR, filename)
+    if not os.path.exists(filepath):
+        filepath = os.path.join(BASE_DIR, "ui_code", filename)
+    if not os.path.exists(filepath):
         filepath = filename
 
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -2806,8 +2838,8 @@ def get_statement_pdf(acc_no):
         }]
             
     try:
-        if os.path.exists("user_profiles.json"):
-            with open("user_profiles.json", "r") as pf:
+        if os.path.exists(PROFILES_JSON):
+            with open(PROFILES_JSON, "r") as pf:
                 profiles = json.load(pf)
                 profile = profiles.get(str(acc_no), {})
                 if "email" in profile:
@@ -2819,14 +2851,11 @@ def get_statement_pdf(acc_no):
         details = bank.user_details_db.get(str(acc_no), {})
         if "account_type" in details:
             acc_data["account_type"] = details["account_type"]
-    except:
+    except Exception:
         pass
 
     acc_data["history"] = history
-    pdf_file = generate_pdf(acc_no, acc_data)
-    
-    with open(pdf_file, "rb") as f:
-        pdf_bytes = f.read()
+    pdf_bytes = generate_pdf(acc_no, acc_data)
         
     response = make_response(pdf_bytes)
     response.headers['Content-Type'] = 'application/pdf'
@@ -3108,10 +3137,12 @@ def reset_upi_pin():
 def static_files(path):
     if path.startswith("api/"):
         return jsonify({"error": "API route not found"}), 404
-    if os.path.exists(path):
-        return send_from_directory(".", path)
-    elif os.path.exists(os.path.join("ui_code", path)):
-        return send_from_directory("ui_code", path)
+    full_path = os.path.join(BASE_DIR, path)
+    if os.path.exists(full_path):
+        return send_from_directory(BASE_DIR, path)
+    ui_full_path = os.path.join(BASE_DIR, "ui_code", path)
+    if os.path.exists(ui_full_path):
+        return send_from_directory(os.path.join(BASE_DIR, "ui_code"), path)
     return "File not found", 404
 
 if __name__ == "__main__":
