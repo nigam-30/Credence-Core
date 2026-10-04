@@ -697,6 +697,9 @@ def init_demo_account_if_needed():
 init_demo_account_if_needed()
 
 @app.route("/")
+@app.route("/index")
+@app.route("/api/index")
+@app.route("/api/index.py")
 def index():
     return send_ui_file("code.html")
 
@@ -3135,6 +3138,12 @@ def reset_upi_pin():
 
 @app.route("/<path:path>")
 def static_files(path):
+    if path in ["code.html", "code"]:
+        return send_ui_file("code.html")
+    if path in ["code(1).html", "code1.html", "dashboard.html"]:
+        return send_ui_file("code(1).html")
+    if path in ["api/index", "api/index.py", "index"]:
+        return send_ui_file("code.html")
     if path.startswith("api/"):
         return jsonify({"error": "API route not found"}), 404
     full_path = os.path.join(BASE_DIR, path)
@@ -3143,7 +3152,7 @@ def static_files(path):
     ui_full_path = os.path.join(BASE_DIR, "ui_code", path)
     if os.path.exists(ui_full_path):
         return send_from_directory(os.path.join(BASE_DIR, "ui_code"), path)
-    return "File not found", 404
+    return send_ui_file("code.html")
 
 if __name__ == "__main__":
     def open_browser():
