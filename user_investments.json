@@ -13,16 +13,34 @@
         }
     },
     "40273146502136": {
-        "sips": [],
+        "sips": [
+            {
+                "id": "SIP-1273",
+                "fund_id": "MF-NIFTY50",
+                "fund_name": "Credence NIFTY 50 Bluechip Index Fund",
+                "category": "Large Cap Index",
+                "type": "Monthly SIP",
+                "monthly_amount": 1000.0,
+                "sip_day": 5,
+                "invested_amount": 1000.0,
+                "current_value": 1000.0,
+                "units": 9.597,
+                "nav": 104.2,
+                "returns_pct": 0.0,
+                "status": "Active",
+                "start_date": "05/10/2026",
+                "next_date": "04/11/2026"
+            }
+        ],
         "ipos": [],
         "rds": [],
         "gold": {
-            "grams": 0.0,
+            "grams": 0.1312,
             "avg_buy_price": 7620.5,
-            "total_invested": 0.0,
+            "total_invested": 1000.0,
             "current_rate": 7620.5,
-            "current_value": 0.0,
-            "returns_pct": 0.0
+            "current_value": 999.81,
+            "returns_pct": -0.02
         }
     },
     "99999999999999": {

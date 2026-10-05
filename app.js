@@ -484,6 +484,37 @@ const syncAccountData = async () => {
         const leftAccType = document.getElementById('ui-left-acc-type');
         if (leftAccType) leftAccType.textContent = data.account_type || 'Savings Account';
 
+        // Immediate Fixed Deposit & Loan UI Synchronization
+        const fdNum = parseFloat(String(data.fixed_deposit || 0).replace(/,/g, '')) || 0;
+        const loanNum = parseFloat(String(data.loan_amount || 0).replace(/,/g, '')) || 0;
+
+        const fdPrincipal = document.getElementById('fd-active-principal');
+        const fdTenure = document.getElementById('fd-active-tenure');
+        const fdVal = document.getElementById('analytics-fd-val');
+        const fdStatus = document.getElementById('analytics-fd-status');
+        const fdWithdrawDisp = document.getElementById('fd-withdraw-display');
+        const fdWithdrawStat = document.getElementById('fd-withdraw-status');
+
+        if (fdPrincipal) fdPrincipal.textContent = formatINR(fdNum);
+        if (fdVal) fdVal.textContent = formatINR(fdNum);
+        if (fdWithdrawDisp) fdWithdrawDisp.textContent = formatINR(fdNum);
+        const hasFd = fdNum > 0;
+        const tenureStr = hasFd ? `Active (${data.fd_tenure || 12} Mo @ 7.2% APY)` : 'No active FDs';
+        if (fdStatus) fdStatus.textContent = tenureStr;
+        if (fdTenure) fdTenure.textContent = hasFd ? `${data.fd_tenure || 12} Months Tenure` : 'No Active Deposit';
+        if (fdWithdrawStat) fdWithdrawStat.textContent = hasFd ? 'Eligible for instant withdrawal' : 'No active deposit';
+
+        const loanVal = document.getElementById('analytics-loan-val');
+        const loanStatus = document.getElementById('analytics-loan-status');
+        const loanKpi = document.getElementById('loans-kpi-val');
+        const loanBadge = document.getElementById('loans-status-badge');
+
+        if (loanVal) loanVal.textContent = formatINR(loanNum);
+        if (loanKpi) loanKpi.textContent = formatINR(loanNum);
+        const hasLoan = loanNum > 0;
+        if (loanStatus) loanStatus.textContent = hasLoan ? 'Active Personal Loan' : '0 Active Loans';
+        if (loanBadge) loanBadge.textContent = hasLoan ? '1 Active Obligation' : '0 Active Obligations';
+
         // 2. Fetch Analytics & KPIs
         syncAnalytics(accNo);
 
@@ -1459,7 +1490,7 @@ window.handleApplyLoan = async (e) => {
 window.handleRepayLoan = async (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     const amount = document.getElementById('loan-repay-amount')?.value?.trim();
-    const currentAcc = sessionStorage.getItem('current_account');
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
 
     if (!amount || parseFloat(amount) <= 0) {
         showToast('Please enter a valid repayment amount.', 'error');
@@ -1477,7 +1508,7 @@ window.handleRepayLoan = async (e) => {
             showToast(d.message || `Loan repayment of ₹${amount} processed successfully!`);
             const inp = document.getElementById('loan-repay-amount');
             if (inp) inp.value = '';
-            syncAccountData();
+            await syncAccountData();
         } else {
             showToast(d.message || d.result || 'Loan repayment failed.', 'error');
         }
@@ -1491,7 +1522,7 @@ window.handleCreateFD = async (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     const amount = document.getElementById('fd-create-amount')?.value?.trim();
     const tenure = document.getElementById('fd-create-tenure')?.value || '12';
-    const currentAcc = sessionStorage.getItem('current_account');
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
 
     if (!amount || parseFloat(amount) <= 0) {
         showToast('Please enter a valid investment amount.', 'error');
@@ -1506,10 +1537,16 @@ window.handleCreateFD = async (e) => {
         });
         const d = await res.json();
         if (d.success) {
-            showToast(`Fixed Deposit of ₹${amount} created successfully!`);
+            showToast(d.message || `Fixed Deposit of ₹${parseFloat(amount).toLocaleString('en-IN')} created successfully!`);
             const inp = document.getElementById('fd-create-amount');
             if (inp) inp.value = '';
-            syncAccountData();
+
+            const fdPrincipal = document.getElementById('fd-active-principal');
+            const fdTenure = document.getElementById('fd-active-tenure');
+            if (fdPrincipal) fdPrincipal.textContent = formatINR(amount);
+            if (fdTenure) fdTenure.textContent = `${tenure} Months Tenure`;
+
+            await syncAccountData();
         } else {
             showToast(d.result || d.message || 'FD creation failed.', 'error');
         }
@@ -1519,7 +1556,7 @@ window.handleCreateFD = async (e) => {
 };
 
 window.handleWithdrawFD = async () => {
-    const currentAcc = sessionStorage.getItem('current_account');
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
     if (!confirm('Are you sure you want to withdraw and liquidate your active Fixed Deposit?')) return;
 
     try {
@@ -1531,7 +1568,11 @@ window.handleWithdrawFD = async () => {
         const d = await res.json();
         if (d.success) {
             showToast('Fixed Deposit liquidated and credited to primary balance!');
-            syncAccountData();
+            const fdPrincipal = document.getElementById('fd-active-principal');
+            const fdTenure = document.getElementById('fd-active-tenure');
+            if (fdPrincipal) fdPrincipal.textContent = '₹0.00';
+            if (fdTenure) fdTenure.textContent = 'No Active Deposit';
+            await syncAccountData();
         } else {
             showToast(d.message || d.result || 'Failed to liquidate FD.', 'error');
         }
@@ -1547,7 +1588,7 @@ window.handleCreateSIP = async (e) => {
     const investType = document.getElementById('sip-type-select')?.value || 'Monthly SIP';
     const sipDay = document.getElementById('sip-day-select')?.value || '5';
     const amount = document.getElementById('sip-amount-input')?.value?.trim();
-    const currentAcc = sessionStorage.getItem('current_account');
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
 
     if (!amount || parseFloat(amount) < 500) {
         showToast('Minimum investment amount is ₹500.', 'error');
@@ -1571,7 +1612,7 @@ window.handleCreateSIP = async (e) => {
             showToast(d.message || `Successfully started ${investType}!`);
             const inp = document.getElementById('sip-amount-input');
             if (inp) inp.value = '';
-            syncAccountData();
+            await syncAccountData();
         } else {
             showToast(d.message || 'SIP investment failed.', 'error');
         }
@@ -1581,7 +1622,7 @@ window.handleCreateSIP = async (e) => {
 };
 
 window.handleSIPAction = async (sipId, action) => {
-    const currentAcc = sessionStorage.getItem('current_account');
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
     if (action === 'redeem') {
         if (!confirm('Are you sure you want to stop and liquidate this Mutual Fund investment? 100% of current valuation will be credited instantly to your bank account.')) return;
     }
@@ -1595,7 +1636,7 @@ window.handleSIPAction = async (sipId, action) => {
         const d = await res.json();
         if (d.success) {
             showToast(d.message);
-            syncAccountData();
+            await syncAccountData();
         } else {
             showToast(d.message || 'Action failed.', 'error');
         }
@@ -2033,7 +2074,7 @@ window.handleGoldBuy = async (e) => {
     
     const amtVal = parseFloat(amtStr) || 0;
     const gramsVal = parseFloat(gramsStr) || 0;
-    const currentAcc = sessionStorage.getItem('current_account');
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
 
     if (amtVal < 100 && gramsVal <= 0) {
         showToast('Minimum 24K Gold purchase is ₹100.', 'error');
@@ -2058,7 +2099,7 @@ window.handleGoldBuy = async (e) => {
             showToast(d.message || '24K Digital Gold purchased successfully!');
             if (gramsInp) gramsInp.value = '';
             if (amtInp) amtInp.value = '';
-            syncAccountData();
+            await syncAccountData();
         } else {
             showToast(d.message || 'Gold purchase failed.', 'error');
         }
@@ -2078,7 +2119,7 @@ window.handleGoldSell = async (e) => {
     
     const amtVal = parseFloat(amtStr) || 0;
     const gramsVal = parseFloat(gramsStr) || 0;
-    const currentAcc = sessionStorage.getItem('current_account');
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
 
     if (gramsVal <= 0 && amtVal <= 0) {
         showToast('Please enter a valid weight in grams or amount to sell.', 'error');
@@ -2100,12 +2141,12 @@ window.handleGoldSell = async (e) => {
         });
         const d = await res.json();
         if (d.success) {
-            showToast(d.message || '24K Digital Gold liquidated successfully!');
+            showToast(d.message || '24K Digital Gold sold and credited to account!');
             if (gramsInp) gramsInp.value = '';
             if (amtInp) amtInp.value = '';
-            syncAccountData();
+            await syncAccountData();
         } else {
-            showToast(d.message || 'Gold sale failed.', 'error');
+            showToast(d.message || 'Gold sell failed.', 'error');
         }
     } catch (err) {
         showToast('Failed to execute gold sale.', 'error');

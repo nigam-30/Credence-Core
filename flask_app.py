@@ -28,11 +28,16 @@ INVESTMENTS_JSON = os.path.join(DATA_DIR, "user_investments.json")
 
 def load_profiles():
     if not os.path.exists(PROFILES_JSON):
-        try:
-            with open(PROFILES_JSON, "w") as f:
-                json.dump({}, f)
-        except Exception:
-            pass
+        base_file = os.path.join(BASE_DIR, "user_profiles.json")
+        if os.path.exists(base_file):
+            try:
+                with open(base_file, "r") as f:
+                    data = json.load(f)
+                with open(PROFILES_JSON, "w") as f:
+                    json.dump(data, f, indent=4)
+                return data
+            except Exception:
+                pass
         return {}
     try:
         with open(PROFILES_JSON, "r") as f:
@@ -51,11 +56,16 @@ def save_profiles(data):
 
 def load_investments():
     if not os.path.exists(INVESTMENTS_JSON):
-        try:
-            with open(INVESTMENTS_JSON, "w") as f:
-                json.dump({}, f)
-        except Exception:
-            pass
+        base_file = os.path.join(BASE_DIR, "user_investments.json")
+        if os.path.exists(base_file):
+            try:
+                with open(base_file, "r") as f:
+                    data = json.load(f)
+                with open(INVESTMENTS_JSON, "w") as f:
+                    json.dump(data, f, indent=4)
+                return data
+            except Exception:
+                pass
         return {}
     try:
         with open(INVESTMENTS_JSON, "r") as f:
@@ -405,12 +415,12 @@ class BankBackend:
                 self.py_accounts[a_no] = {
                     "account_number": a_no,
                     "name": p.get("name", "Customer"),
-                    "balance": float(p.get("balance", 25000.0 if a_no == "40273146502136" else 10000.0)),
-                    "loanAmount": float(p.get("loan_amount", 0.0)),
-                    "fixedDeposit": float(p.get("fixed_deposit", 0.0)),
+                    "balance": float(str(p.get("balance", 25000.0 if a_no == "40273146502136" else 10000.0)).replace(',', '')),
+                    "loanAmount": float(str(p.get("loan_amount", 0.0)).replace(',', '')),
+                    "fixedDeposit": float(str(p.get("fixed_deposit", 0.0)).replace(',', '')),
                     "pin": p.get("pin", "1234"),
-                    "card": {"cardNumber": p.get("card_number", ""), "nameOnCard": p.get("name", "Customer"), "expiry": p.get("expiry", "10/30"), "cvv": p.get("cvv", "892"), "pin": p.get("pin", "1234")},
-                    "hasDebitCard": bool(p.get("card_number"))
+                    "card": {"cardNumber": p.get("card_number", f"4092 8819 2401 {a_no[-4:]}"), "nameOnCard": p.get("name", "Customer"), "expiry": p.get("expiry", "10/30"), "cvv": p.get("cvv", "892"), "pin": p.get("pin", "1234")},
+                    "hasDebitCard": bool(p.get("card_number", True))
                 }
             elif a_no == "40273146502136":
                 self.py_accounts[a_no] = {
@@ -423,6 +433,19 @@ class BankBackend:
                     "card": {"cardNumber": "4092 8819 2401 2136", "nameOnCard": "Ben Tennyson", "expiry": "10/30", "cvv": "892", "pin": "1234"},
                     "hasDebitCard": True
                 }
+                self._sync_profile(a_no)
+            else:
+                self.py_accounts[a_no] = {
+                    "account_number": a_no,
+                    "name": "Bank Customer",
+                    "balance": 25000.0,
+                    "loanAmount": 0.0,
+                    "fixedDeposit": 0.0,
+                    "pin": "1234",
+                    "card": {"cardNumber": f"4092 8819 2401 {a_no[-4:]}", "nameOnCard": "Bank Customer", "expiry": "10/30", "cvv": "892", "pin": "1234"},
+                    "hasDebitCard": True
+                }
+                self._sync_profile(a_no)
         return self.py_accounts.get(a_no)
 
     def _sync_profile(self, a_no):
@@ -432,9 +455,16 @@ class BankBackend:
         if a_no in self.py_accounts:
             profs = load_profiles()
             ud = profs.setdefault(a_no, {})
+            ud["account_number"] = a_no
+            ud["name"] = self.py_accounts[a_no].get("name", ud.get("name", "Bank Customer"))
             ud["balance"] = f"{float(self.py_accounts[a_no]['balance']):.2f}"
             ud["loan_amount"] = f"{float(self.py_accounts[a_no]['loanAmount']):.2f}"
             ud["fixed_deposit"] = f"{float(self.py_accounts[a_no]['fixedDeposit']):.2f}"
+            if "pin" not in ud: ud["pin"] = self.py_accounts[a_no].get("pin", "1234")
+            if "card_number" not in ud and self.py_accounts[a_no].get("card"):
+                ud["card_number"] = self.py_accounts[a_no]["card"].get("cardNumber", "")
+                ud["expiry"] = self.py_accounts[a_no]["card"].get("expiry", "10/30")
+                ud["cvv"] = self.py_accounts[a_no]["card"].get("cvv", "892")
             save_profiles(profs)
             self.user_details_db = profs
 
@@ -2359,6 +2389,7 @@ def get_live_gold_rate_endpoint():
 @app.route("/api/investments/<acc_no>", methods=["GET"])
 def get_user_investments(acc_no):
     try:
+        bank._ensure_acc(acc_no)
         inv = get_or_create_investments(acc_no)
         gold_rate = fetch_live_gold_rate()
         
@@ -2966,6 +2997,7 @@ def get_statement_pdf(acc_no):
 
 @app.route("/api/analytics/<acc_no>", methods=["GET"])
 def get_analytics(acc_no):
+    bank._ensure_acc(acc_no)
     accounts = bank.get_report()
     acc_data = next((a for a in accounts if str(a["account_number"]) == str(acc_no)), None)
     
