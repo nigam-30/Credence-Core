@@ -11,6 +11,19 @@
 
 ---
 
+### ⚠️ DEVELOPMENT PROJECT NOTICE
+
+**Please Note:** This application is a **college development project created for educational and demonstration purposes only**.
+
+- Please **do not enter real banking credentials, passwords, PINs, card details, or other sensitive information**.
+- Use **dummy/test credentials and fictional information only**.
+- This application is **not connected to any real banking system or financial institution**.
+- Any data entered is intended solely for testing and demonstration purposes.
+
+**Thank you for understanding.**
+
+---
+
 ## 🚀 Key Highlights & Feature Matrix
 
 ### 1. 🏛️ Core Banking Engine & Atomic Ledger
@@ -116,5 +129,13 @@ Vercel will automatically build the Python serverless function and route all API
 
 ---
 
-## ⚠️ Academic & Demonstration Notice
-Credence Core is an educational and simulation platform developed for demonstration and engineering portfolio purposes. Do not enter real banking credentials, passwords, or sensitive financial information.
+### ⚠️ DEVELOPMENT PROJECT NOTICE
+
+**Please Note:** This application is a **college development project created for educational and demonstration purposes only**.
+
+- Please **do not enter real banking credentials, passwords, PINs, card details, or other sensitive information**.
+- Use **dummy/test credentials and fictional information only**.
+- This application is **not connected to any real banking system or financial institution**.
+- Any data entered is intended solely for testing and demonstration purposes.
+
+**Thank you for understanding.**
