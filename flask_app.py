@@ -387,8 +387,9 @@ class BankBackend:
         self.lock = threading.Lock()
         self.netbanking_db = {}
         self.user_details_db = load_profiles()
-        self.use_fallback = False
+        self.use_fallback = True
         self.py_accounts = {}
+        self.proc = None
         self.start_process()
 
     def _ensure_acc(self, a_no):
@@ -468,70 +469,14 @@ class BankBackend:
             save_profiles(profs)
             self.user_details_db = profs
 
-    def compile_if_missing(self):
-        if IS_SERVERLESS or os.environ.get("VERCEL"):
-            self.use_fallback = True
-            return
-        exe_file = os.path.join(BASE_DIR, "bank_system.exe" if os.name == 'nt' else "bank_system")
-        if not os.path.exists(exe_file):
-            try:
-                print("Compiling " + exe_file + "...")
-                subprocess.run(["g++", "main.cpp", "account.cpp", "credit.cpp", "debit.cpp", 
-                                "fd.cpp", "loan.cpp", "report.cpp", "upi.cpp", "utils.cpp", "cheque.cpp", "globals.cpp", 
-                                "-o", exe_file], cwd=BASE_DIR, check=True)
-            except Exception as e:
-                print(f"Compilation skipped/failed ({e}). Switching to pure-Python engine.")
-                self.use_fallback = True
-
     def start_process(self):
         self.user_details_db = load_profiles()
         self._ensure_acc("99999999999999")
         self._ensure_acc("40273146502136")
         for a_no in self.user_details_db:
             self._ensure_acc(a_no)
-            
-        try:
-            self.compile_if_missing()
-        except Exception:
-            self.use_fallback = True
-
-        exe_file = os.path.join(BASE_DIR, "bank_system.exe" if os.name == 'nt' else "./bank_system")
-        if not self.use_fallback and os.path.exists(exe_file):
-            try:
-                self.proc = subprocess.Popen(
-                    [exe_file],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    text=True,
-                    bufsize=1,
-                    cwd=BASE_DIR
-                )
-                if self.proc.stdout and self.proc.stdin:
-                    self.stdout = self.proc.stdout
-                    self.stdin = self.proc.stdin
-                    self.init_output = self._read_until("Enter choice: ")
-                    self.use_fallback = False
-                    return
-            except Exception as e:
-                print(f"Failed to start binary ({e}). Using Python serverless engine.")
-        
         self.use_fallback = True
         self.proc = None
-
-    def _read_until(self, marker, timeout=5.0):
-        if self.use_fallback or not self.proc:
-            return ""
-        buffer = ""
-        start = time.time()
-        while time.time() - start < timeout:
-            if self.proc.poll() is not None:
-                self.start_process()
-                break
-            char = self.stdout.read(1)
-            if not char: break
-            buffer += char
-            if buffer.endswith(marker): break
-        return buffer
 
     def execute(self, choice, inputs):
         if not self.use_fallback and self.proc:
@@ -723,46 +668,20 @@ class BankBackend:
         self._ensure_acc("99999999999999")
         self._ensure_acc("40273146502136")
         profs = load_profiles()
-        for a_no, p in profs.items():
+        for a_no in profs:
             self._ensure_acc(a_no)
 
-        if self.use_fallback or not self.proc:
-            accounts = []
-            with self.lock:
-                for a_no, a in self.py_accounts.items():
-                    if a_no in ["99999999999999", "999999"]: continue
-                    accounts.append({
-                        "account_number": str(a_no),
-                        "name": str(a.get("name", "User")),
-                        "balance": f"{float(a.get('balance', 0.0)):.2f}",
-                        "loan_amount": f"{float(a.get('loanAmount', 0.0)):.2f}",
-                        "fixed_deposit": f"{float(a.get('fixedDeposit', 0.0)):.2f}"
-                    })
-            return accounts
-
-        out = self.execute("9", [])
         accounts = []
-        for line in out.split('\n'):
-            if line.startswith("Account No:"):
-                parts = line.split(" | ")
-                if len(parts) >= 3:
-                    try:
-                        acc_no = parts[0].split(": ")[1].strip()
-                        name = parts[1].split(": ")[1].strip()
-                        bal_str = parts[2].split("INR ")[-1].strip()
-                        loan_str = parts[3].split("INR ")[-1].strip() if len(parts)>3 else "0"
-                        fd_str = parts[4].split("INR ")[-1].strip() if len(parts)>4 else "0"
-                        
-                        accounts.append({
-                            "account_number": acc_no,
-                            "name": name,
-                            "balance": bal_str,
-                            "loan_amount": loan_str,
-                            "fixed_deposit": fd_str
-                        })
-                    except Exception as e:
-                        print("Parse error on line:", line, e)
-                        continue
+        with self.lock:
+            for a_no, a in self.py_accounts.items():
+                if str(a_no) in ["99999999999999", "999999"]: continue
+                accounts.append({
+                    "account_number": str(a_no),
+                    "name": str(a.get("name", "User")),
+                    "balance": f"{float(a.get('balance', 0.0)):.2f}",
+                    "loan_amount": f"{float(a.get('loanAmount', 0.0)):.2f}",
+                    "fixed_deposit": f"{float(a.get('fixedDeposit', 0.0)):.2f}"
+                })
         return accounts
 
 bank = BankBackend()
@@ -2926,10 +2845,11 @@ def get_loans(acc_no):
                 
                 # Reverse history to show latest
                 for tx in reversed(history):
-                    if "Loan Credit" in tx.get("type", ""):
+                    t_type = tx.get("type", "")
+                    if any(k in t_type for k in ["Loan Disbursal", "Loan Credit", "Loan Applied", "Personal Loan"]):
                         amount = str(tx.get("amount", "")).replace("+", "").replace("-", "")
                         loans.append({
-                            "type": "Personal Loan",
+                            "type": t_type.replace("Loan Disbursal - ", ""),
                             "date": tx.get("date", "").split(" ")[0],
                             "amount": amount,
                             "status": status,
@@ -2937,6 +2857,15 @@ def get_loans(acc_no):
                         })
         except Exception:
             pass
+
+    if not loans and current_loan_amt > 0:
+        loans.append({
+            "type": "Personal Loan",
+            "date": datetime.datetime.now().strftime("%d/%m/%Y"),
+            "amount": f"{current_loan_amt:,.2f}",
+            "status": "Active",
+            "id": "#LN-1001"
+        })
             
     return jsonify({"success": True, "loans": loans})
 
