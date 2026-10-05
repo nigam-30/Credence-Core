@@ -1253,7 +1253,7 @@ def transfer_api():
         bank._ensure_acc(from_acc)
         bank._ensure_acc(to_acc)
         accs = bank.get_report()
-        valid_to = any(str(a["account_number"]) == to_acc for a in accs)
+        valid_to = (to_acc in bank.py_accounts) or (to_acc in ["999999", "99999999999999"]) or any(str(a["account_number"]) == to_acc for a in accs)
         if not valid_to:
             return jsonify({"success": False, "result": "Receiver account does not exist or is invalid."})
         
@@ -1262,9 +1262,8 @@ def transfer_api():
         res_str = parse_output(out)
         
         if "successful" in res_str.lower() or "success" in res_str.lower() or "transferred" in res_str.lower():
-            accs = bank.get_report()
-            b1 = next((a["balance"] for a in accs if str(a["account_number"]) == from_acc), "0")
-            b2 = next((a["balance"] for a in accs if str(a["account_number"]) == to_acc), "0")
+            b1 = str(bank.py_accounts.get(from_acc, {}).get("balance", "0"))
+            b2 = str(bank.py_accounts.get(to_acc, {}).get("balance", "0"))
             save_transaction(from_acc, f"Transfer Out ({method})", f"-{amount}", b1)
             save_transaction(to_acc, f"Transfer In ({method})", f"+{amount}", b2)
         else:
@@ -1337,19 +1336,16 @@ def pay_bill():
                  return jsonify({"success": False, "message": "UPI PIN must be 4 or 6 digits."})
 
         # Route bill payment to System Account (simulate utility vendor)
-        sys_acc = next((a for a in accs if a.get("name") == "SYSTEM" or str(a.get("account_number")) in ["999999", "99999999999999"]), None)
-        if not sys_acc:
-            return jsonify({"success": False, "message": "System receiver account could not be found."})
-        to_acc = str(sys_acc["account_number"])
+        to_acc = "99999999999999"
+        bank._ensure_acc(to_acc)
 
         # Transfer via Option 3 to SYSTEM
         out = bank.execute("3", [accNo, to_acc, amount])
         res_str = parse_output(out)
 
         if "successful" in res_str.lower() or "success" in res_str.lower() or "transferred" in res_str.lower():
-            updated_accs = bank.get_report()
-            b1 = next((a["balance"] for a in updated_accs if str(a["account_number"]) == accNo), "0")
-            b2 = next((a["balance"] for a in updated_accs if str(a["account_number"]) == to_acc), "0")
+            b1 = str(bank.py_accounts.get(accNo, {}).get("balance", "0"))
+            b2 = str(bank.py_accounts.get(to_acc, {}).get("balance", "0"))
             
             # Map tx titles to strict required proper types
             remarks = str(req.get("remarks", "")).strip()[:100]
