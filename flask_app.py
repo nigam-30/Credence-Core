@@ -912,9 +912,13 @@ def send_ui_file(filename):
 
 @app.route("/api/login", methods=["POST"])
 def login():
-    req = request.json
-    accNo = req.get("account")
-    password = req.get("password", "")
+    req = request.json or {}
+    accNo = str(req.get("account", "")).strip()
+    password = str(req.get("password", "")).strip()
+    if not accNo:
+        return jsonify({"success": False, "message": "Account number is required."})
+        
+    bank._ensure_acc(accNo)
     accounts = bank.get_report()
     
     for acc in accounts:
@@ -934,7 +938,7 @@ def login():
                 }
             })
             
-    return jsonify({"success": False, "message": "Account not found in C++ memory. Please pass correct credentials!"})
+    return jsonify({"success": False, "message": "Account not found. Please check credentials or register."})
 
 @app.route("/api/create_account", methods=["POST"])
 def create_account():

@@ -761,16 +761,89 @@ window.switchInvestSubTab = (subTabName) => {
 };
 
 window.selectFundForSIP = (fundId) => {
+    const marketFunds = window.currentInvestmentsData?.market_funds || [
+        { id: "MF-NIFTY50", name: "Credence NIFTY 50 Bluechip Index Fund", category: "Large Cap Index", nav: 104.20, min_sip: 500 },
+        { id: "MF-FLEXICAP", name: "Credence Flexi Cap Opportunities Fund", category: "Flexi Cap", nav: 152.80, min_sip: 1000 },
+        { id: "MF-SMALLCAP", name: "Credence Small Cap Alpha Fund", category: "Small Cap", nav: 218.40, min_sip: 1000 },
+        { id: "MF-ELSS80C", name: "Credence ELSS Tax Saver 80C Fund", category: "Tax Saver (3Y Lock)", nav: 96.50, min_sip: 500 },
+        { id: "MF-TECHAI", name: "Credence Digital Tech & AI Growth Fund", category: "Sectoral / Thematic", nav: 178.60, min_sip: 1000 }
+    ];
+    const fund = marketFunds.find(f => f.id === fundId) || marketFunds[0];
+    
+    // Also sync dropdown
     const sel = document.getElementById('sip-fund-select');
-    if (sel) {
-        sel.value = fundId;
-    }
-    const form = document.getElementById('form-create-sip');
-    if (form) {
-        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        const amtInput = document.getElementById('sip-amount-input');
-        if (amtInput) amtInput.focus();
-    }
+    if (sel) sel.value = fund.id;
+
+    openModal({
+        title: `Invest in ${fund.name}`,
+        description: `Direct Mutual Fund / SIP Execution Engine`,
+        contentHtml: `
+            <div class="space-y-3.5">
+                <div class="p-3.5 bg-emerald-50 border border-emerald-200/80 rounded-2xl flex items-center justify-between text-xs">
+                    <div>
+                        <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider block">Category</span>
+                        <p class="font-extrabold text-slate-900">${fund.category || 'Large Cap Index'}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider block">Current NAV</span>
+                        <p class="font-bold text-emerald-700 font-mono">₹${fund.nav || 100.0}</p>
+                    </div>
+                </div>
+                <div>
+                    <label class="block mb-1 text-slate-700 font-bold text-xs">Investment Mode</label>
+                    <select id="modal-sip-type" class="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900">
+                        <option value="Monthly SIP" selected>Monthly SIP (Auto-debit on 5th)</option>
+                        <option value="Lump Sum">Lump Sum (One-time Investment)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block mb-1 text-slate-700 font-bold text-xs">Investment Amount (₹)</label>
+                    <input id="modal-sip-amount" type="number" min="${fund.min_sip || 500}" step="500" value="${fund.min_sip || 500}" placeholder="Min ₹${fund.min_sip || 500}"
+                        class="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-sm" autofocus />
+                </div>
+                <div class="p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-[11px] text-slate-500 flex justify-between">
+                    <span>Minimum Investment:</span>
+                    <span class="font-bold text-slate-800">₹${(fund.min_sip || 500).toLocaleString('en-IN')}</span>
+                </div>
+            </div>
+        `,
+        submitText: 'Confirm & Invest',
+        onConfirm: async (modal, close) => {
+            const investType = modal.querySelector('#modal-sip-type').value;
+            const amtStr = modal.querySelector('#modal-sip-amount').value.trim();
+            const amount = parseFloat(amtStr) || 0;
+            const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+
+            if (amount < (fund.min_sip || 500)) {
+                showToast(`Minimum investment amount is ₹${fund.min_sip || 500}.`, 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/invest/sip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        account: currentAcc,
+                        fund_id: fund.id,
+                        type: investType,
+                        sip_day: 5,
+                        amount: amount
+                    })
+                });
+                const d = await res.json();
+                close();
+                if (d.success) {
+                    showToast(d.message || `Successfully started ${investType}!`);
+                    await syncAccountData();
+                } else {
+                    showToast(d.message || 'SIP investment failed.', 'error');
+                }
+            } catch (err) {
+                showToast('Failed to start investment.', 'error');
+            }
+        }
+    });
 };
 
 const syncInvestments = async (accNo) => {
@@ -778,6 +851,7 @@ const syncInvestments = async (accNo) => {
         const res = await fetch(`/api/investments/${accNo}`);
         const data = await res.json();
         if (!data.success) return;
+        window.currentInvestmentsData = data;
 
         const summary = data.portfolio_summary || {};
         
