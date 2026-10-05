@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: credence-core
+    env: python
+    buildCommand: "pip install -r requirements.txt && g++ main.cpp account.cpp credit.cpp debit.cpp fd.cpp loan.cpp report.cpp upi.cpp utils.cpp cheque.cpp globals.cpp -o bank_system"
+    startCommand: "gunicorn flask_app:app"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0

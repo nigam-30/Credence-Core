@@ -105,27 +105,37 @@ run_html_ui.bat
 
 ---
 
-## 🌐 Deploy to Vercel (Zero-Config)
+## 🌐 Production & Cloud Deployment
 
-This repository includes a production-ready `vercel.json` and serverless Python architecture:
+### Option 1: Render.com (Recommended Free Full-Stack Web Service)
+Render provides a 100% free Linux web container that compiles the C++ core engine and runs Python Flask seamlessly 24/7 with persistent execution:
 
-1. **Push to GitHub**:
-   ```bash
-   git init
-   git add .
-   git commit -m "Deploy Credence Core Banking Platform"
-   git branch -M main
-   git remote add origin https://github.com/<your-username>/<repo-name>.git
-   git push -u origin main
-   ```
+1. Go to [render.com](https://render.com/) and click **New + → Web Service**.
+2. Connect your GitHub repository `Credence-Core`.
+3. Configure the service:
+   * **Name**: `credence-core`
+   * **Language**: `Python 3`
+   * **Build Command**: `pip install -r requirements.txt && g++ main.cpp account.cpp credit.cpp debit.cpp fd.cpp loan.cpp report.cpp upi.cpp utils.cpp cheque.cpp globals.cpp -o bank_system`
+   * **Start Command**: `gunicorn flask_app:app`
+   * **Instance Type**: `Free`
+4. Click **Create Web Service** — Render will automatically build the C++ binary and launch your live URL (`https://credence-core.onrender.com`).
 
-2. **Deploy on Vercel**:
-   * Navigate to [vercel.com/new](https://vercel.com/new).
-   * Import your GitHub repository.
-   * Framework Preset: **Other**.
-   * Click **Deploy**.
+---
 
-Vercel will automatically build the Python serverless function and route all API requests and UI templates seamlessly.
+### Option 2: Docker / Container Platforms (Railway, Koyeb, Fly.io, Hugging Face)
+Use the included `Dockerfile` for zero-configuration container deployment:
+```bash
+docker build -t credence-core .
+docker run -p 5000:5000 credence-core
+```
+
+---
+
+### Option 3: Vercel (Serverless Cloud Function)
+1. Navigate to [vercel.com/new](https://vercel.com/new).
+2. Import your GitHub repository `Credence-Core`.
+3. Framework Preset: **Other**.
+4. Click **Deploy**. Vercel will automatically build the Python serverless function via `vercel.json`.
 
 ---
 

@@ -3286,10 +3286,15 @@ def static_files(path):
     return send_ui_file("code.html")
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     def open_browser():
-        import webbrowser
-        webbrowser.open("http://127.0.0.1:5000/")
+        if not os.environ.get("PORT") and not os.environ.get("RENDER") and not os.environ.get("VERCEL"):
+            try:
+                import webbrowser
+                webbrowser.open(f"http://127.0.0.1:{port}/")
+            except Exception:
+                pass
     
     threading.Timer(1.5, open_browser).start()
-    app.run(port=5000, debug=False, use_reloader=False)
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
