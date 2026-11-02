@@ -178,6 +178,7 @@ def init_db():
                 ("mfa_secret", "VARCHAR(255)"),
                 ("mfa_recovery_codes", "TEXT"),
                 ("mfa_enrolled_at", "DATETIME"),
+                ("last_totp_step", "BIGINT DEFAULT 0"),
             ]
             for col_name, col_def in user_additions:
                 if col_name not in user_cols:

@@ -451,11 +451,8 @@ window.openUserProfileModal = () => {
 const syncAccountData = async () => {
     let accNo = sessionStorage.getItem('current_account');
     if (!accNo) {
-        if (window.location.pathname.includes('code(1).html') || window.location.pathname.includes('dashboard') || window.location.pathname.endsWith('/')) {
-            accNo = '40273146502136';
-            sessionStorage.setItem('current_account', accNo);
-        } else if (window.location.pathname !== '/' && !window.location.pathname.endsWith('code.html')) {
-            window.location.href = '/';
+        if (window.location.pathname !== '/' && !window.location.pathname.endsWith('code.html')) {
+            window.logout?.();
             return;
         } else {
             return;
@@ -465,14 +462,18 @@ const syncAccountData = async () => {
     try {
         // 1. Fetch Current Account Info
         const res = await fetch(`/api/account/${accNo}`);
+        if (res.status === 401 || res.status === 403) {
+            sessionStorage.removeItem('current_account');
+            currentAccountData = null;
+            window.location.href = '/';
+            return;
+        }
         const data = await res.json();
         if (data.error || !data.account_number) {
-            accNo = '40273146502136';
-            sessionStorage.setItem('current_account', accNo);
-            const fallbackRes = await fetch(`/api/account/${accNo}`);
-            const fallbackData = await fallbackRes.json();
-            if (fallbackData.error || !fallbackData.account_number) return;
-            currentAccountData = fallbackData;
+            sessionStorage.removeItem('current_account');
+            currentAccountData = null;
+            window.location.href = '/';
+            return;
         } else {
             currentAccountData = data;
         }
@@ -879,7 +880,7 @@ window.selectFundForSIP = (fundId) => {
             const investType = modal.querySelector('#modal-sip-type').value;
             const amtStr = modal.querySelector('#modal-sip-amount').value.trim();
             const amount = parseFloat(amtStr) || 0;
-            const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+            const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
             if (amount < (fund.min_sip || 500)) {
                 showToast(`Minimum investment amount is ₹${fund.min_sip || 500}.`, 'error');
@@ -1631,7 +1632,7 @@ window.handleApplyLoan = async (e) => {
 window.handleRepayLoan = async (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     const amount = document.getElementById('loan-repay-amount')?.value?.trim();
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     if (!amount || parseFloat(amount) <= 0) {
         showToast('Please enter a valid repayment amount.', 'error');
@@ -1663,7 +1664,7 @@ window.handleCreateFD = async (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     const amount = document.getElementById('fd-create-amount')?.value?.trim();
     const tenure = document.getElementById('fd-create-tenure')?.value || '12';
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     if (!amount || parseFloat(amount) <= 0) {
         showToast('Please enter a valid investment amount.', 'error');
@@ -1697,7 +1698,7 @@ window.handleCreateFD = async (e) => {
 };
 
 window.handleWithdrawFD = async () => {
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
     if (!confirm('Are you sure you want to withdraw and liquidate your active Fixed Deposit?')) return;
 
     try {
@@ -1729,7 +1730,7 @@ window.handleCreateSIP = async (e) => {
     const investType = document.getElementById('sip-type-select')?.value || 'Monthly SIP';
     const sipDay = document.getElementById('sip-day-select')?.value || '5';
     const amount = document.getElementById('sip-amount-input')?.value?.trim();
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     if (!amount || parseFloat(amount) < 500) {
         showToast('Minimum investment amount is ₹500.', 'error');
@@ -1763,7 +1764,7 @@ window.handleCreateSIP = async (e) => {
 };
 
 window.handleSIPAction = async (sipId, action) => {
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
     if (action === 'redeem') {
         if (!confirm('Are you sure you want to stop and liquidate this Mutual Fund investment? 100% of current valuation will be credited instantly to your bank account.')) return;
     }
@@ -1788,7 +1789,7 @@ window.handleSIPAction = async (sipId, action) => {
 
 // ════════════ IPO FULL DETAILS & GMP MODAL (IPOJI FLOW) ════════════
 window.openIpoDetailsModal = async (ipoId) => {
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
     try {
         const res = await fetch(`/api/investments/${currentAcc}`);
         const data = await res.json();
@@ -1971,7 +1972,7 @@ window.openIpoDetailsModal = async (ipoId) => {
 };
 
 window.openIpoBidModal = async (ipoId) => {
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
     try {
         const res = await fetch(`/api/investments/${currentAcc}`);
         const data = await res.json();
@@ -2122,7 +2123,7 @@ window.handleCreateRD = async (e) => {
     e.preventDefault();
     const amount = document.getElementById('rd-create-amount').value.trim();
     const tenure = document.getElementById('rd-create-tenure').value;
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     if (!amount || parseFloat(amount) < 500) {
         showToast('Minimum Recurring Deposit installment is ₹500.', 'error');
@@ -2215,7 +2216,7 @@ window.handleGoldBuy = async (e) => {
     
     const amtVal = parseFloat(amtStr) || 0;
     const gramsVal = parseFloat(gramsStr) || 0;
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     if (amtVal < 100 && gramsVal <= 0) {
         showToast('Minimum 24K Gold purchase is ₹100.', 'error');
@@ -2260,7 +2261,7 @@ window.handleGoldSell = async (e) => {
     
     const amtVal = parseFloat(amtStr) || 0;
     const gramsVal = parseFloat(gramsStr) || 0;
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     if (gramsVal <= 0 && amtVal <= 0) {
         showToast('Please enter a valid weight in grams or amount to sell.', 'error');
@@ -2301,7 +2302,7 @@ window.handleSendMoney = async (e) => {
     const toAcc = document.getElementById('transfer-tab-recipient').value.trim();
     const amount = document.getElementById('transfer-tab-amount').value.trim();
     const method = document.getElementById('transfer-tab-method').value;
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     if (!toAcc || !amount || parseFloat(amount) <= 0) {
         showToast('Please enter a valid recipient account and amount.', 'error');
@@ -2358,7 +2359,7 @@ window.handleBillPay = async (e) => {
 
     const amtEl = document.getElementById('bill-amount');
     const amount = amtEl ? amtEl.value.trim() : '0';
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     if (!amount || parseFloat(amount) <= 0) {
         showToast('Please enter a valid bill amount.', 'error');
@@ -2398,7 +2399,7 @@ window.handleSetupUPI = async (e) => {
     e.preventDefault();
     const upiId = document.getElementById('upi-setup-id').value.trim();
     const upiPin = document.getElementById('upi-setup-pin').value.trim();
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     if (!upiId || !upiPin || (upiPin.length !== 4 && upiPin.length !== 6)) {
         showToast('UPI PIN must be 4 or 6 digits.', 'error');
@@ -2426,7 +2427,7 @@ window.handleSetupUPI = async (e) => {
 
 // ════════════ HANDLERS: CARDS & SETTINGS TAB ════════════
 window.handleBlockCard = async () => {
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
     if (!confirm('Are you sure you want to block and freeze your active Debit Card?')) return;
 
     try {
@@ -2448,7 +2449,7 @@ window.handleBlockCard = async () => {
 };
 
 window.handleReissueCard = () => {
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
     openModal({
         title: 'Reissue / Request New Debit Card',
         description: 'Set a new 4-digit PIN for your replacement Visa Platinum Card',
@@ -2656,7 +2657,7 @@ window.handleApplyCC = async (e) => {
     const income = document.getElementById('cc-income').value.trim();
     const cibil = document.getElementById('cc-cibil').value.trim();
     const pan = document.getElementById('cc-pan').value.trim();
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     try {
         const res = await fetch('/api/apply_cc', {
@@ -2693,7 +2694,7 @@ window.handleApplyCC = async (e) => {
 };
 
 window.handleToggle2FA = async () => {
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
     try {
         const res = await fetch('/api/settings/2fa', {
             method: 'POST',
@@ -2721,7 +2722,7 @@ window.handleUpdatePassword = async (e) => {
     e.preventDefault();
     const oldP = document.getElementById('pwd-old').value.trim();
     const newP = document.getElementById('pwd-new').value.trim();
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     try {
         const res = await fetch('/api/settings/password', {
@@ -2746,7 +2747,7 @@ window.handleUpdateProfile = async (e) => {
     e.preventDefault();
     const email = document.getElementById('prof-email').value.trim();
     const dob = document.getElementById('prof-dob').value.trim();
-    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     try {
         const res = await fetch('/api/update_profile', {
@@ -2768,7 +2769,7 @@ window.handleUpdateProfile = async (e) => {
 
 // ════════════ STATEMENT PDF DOWNLOAD ════════════
 window.downloadStatementPDF = async () => {
-    const accNo = sessionStorage.getItem('current_account') || currentAccountData?.account_number || '40273146502136';
+    const accNo = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
     if (!accNo) {
         showToast('Please sign in to an account first.', 'error');
         return;

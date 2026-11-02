@@ -16,12 +16,21 @@ class FinancialPolicy:
     Policy Version: 2026.2.0 (Phase 6.2 Hardening)
     """
     POLICY_VERSION = "2026.2.0"
+    POLICY_ENGINE_VERSION = "2026.3.0"
 
     # Default Transaction Limits (INR)
     DEFAULT_DAILY_LIMIT_PAISE = 50000000          # ₹5,00,000.00
     DEFAULT_PER_TXN_LIMIT_PAISE = 10000000        # ₹1,00,000.00
     DEFAULT_APPROVAL_THRESHOLD_PAISE = 5000000    # ₹50,000.00
     HIGH_VALUE_FRAUD_THRESHOLD_PAISE = 20000000   # ₹2,00,000.00
+
+    # Fraud Detection & Risk Parameters (Centralized)
+    FRAUD_VELOCITY_WINDOW_SECONDS = 300           # 5 minutes
+    FRAUD_VELOCITY_MAX_TXNS = 4                   # Max 4 transactions in 5 minutes
+    FRAUD_BALANCE_DRAIN_PCT = Decimal("0.80")     # Flag if withdrawal > 80% of balance
+    FRAUD_MAX_PIN_FAILURES = 3                    # Flag after 3 failed PIN attempts in window
+    FRAUD_SCORE_ALERT_THRESHOLD = 50              # Alert generated if risk score >= 50
+    FRAUD_SCORE_MANUAL_REVIEW_THRESHOLD = 75      # Require administrative approval if score >= 75
 
     # Interest Rates (Annualized Percentage)
     SAVINGS_INTEREST_RATE_PCT = Decimal("3.50")

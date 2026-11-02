@@ -52,9 +52,10 @@ limit_request_field_size = 8190
 accesslog = "-"  # stdout for Docker / Cloud native log collectors
 errorlog = "-"   # stderr
 loglevel = os.environ.get("LOG_LEVEL", "info").lower()
+# Query strings strictly stripped from access logs for privacy compliance
 access_log_format = (
     '{"remote_ip":"%(h)s","timestamp":"%(t)s","method":"%(m)s",'
-    '"uri":"%(U)s","query":"%(q)s","status":%(s)s,"bytes":%(B)s,'
+    '"uri":"%(U)s","status":%(s)s,"bytes":%(B)s,'
     '"duration_us":%(D)s,"user_agent":"%(a)s"}'
 )
 

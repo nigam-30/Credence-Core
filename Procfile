@@ -1,1 +1,1 @@
-web: gunicorn flask_app:app
+web: gunicorn --config gunicorn_config.py "backend.app:create_app()"

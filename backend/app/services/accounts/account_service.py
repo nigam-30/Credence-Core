@@ -3,11 +3,12 @@ Credence Core — Account Service
 Handles account creation, details inspection, profile updates, and settings.
 """
 
-import random
+import secrets
 import datetime
 from typing import Dict, Any, List, Optional
 from backend.app.core.database import get_db
 from backend.app.core.security import hash_password, hash_pin, verify_password, mask_card
+from backend.app.schemas.validators import validate_email, validate_pan, ValidationError
 from backend.app.models import User, Account, AccountBalance, Card, UPIProfile
 from backend.app.repositories.account_repository import account_repository
 from backend.app.repositories.user_repository import user_repository
@@ -73,24 +74,37 @@ class AccountService:
                        account_type: str = "Savings Account") -> Dict[str, Any]:
         """Create a new bank account with relational persistence and Argon2id hashing."""
         with get_db() as db:
-            # Generate unique 14-digit account number
-            while True:
-                acc_no = str(random.randint(10000000000000, 99999999999999))
+            # Generate unique 14-digit account number using cryptographically secure randomness
+            for _ in range(10):
+                # Generates a 14-digit number starting with 4 (Credence prefix)
+                suffix = secrets.randbelow(10**13)
+                acc_no = f"4{suffix:013d}"
                 if not account_repository.get_by_number(db, acc_no):
                     break
+            else:
+                raise RuntimeError("Failed to allocate a unique account number after multiple attempts.")
 
-            cid = f"CUST-{acc_no[-6:]}"
+            # Customer ID generated cryptographically independent of account number
+            cid = f"CUST-{secrets.token_hex(4).upper()}"
             if not password:
                 raise ValueError("Password is required and must meet security criteria.")
             pwd_hash = hash_password(password)
             p_hash = hash_pin(pin) if pin else None
 
+            # Enforce proper KYC validation on email and PAN
+            valid_email = None
+            if email:
+                valid_email = validate_email(email)
+            valid_pan = None
+            if pan:
+                valid_pan = validate_pan(pan)
+
             # Create User
             user = User(
                 customer_id=cid,
                 name=name,
-                email=email or f"user_{acc_no[-4:]}@credence.bank",
-                pan=pan,
+                email=valid_email,
+                pan=valid_pan,
                 role="user",
                 password_hash=pwd_hash,
                 pin_hash=p_hash,
@@ -108,14 +122,29 @@ class AccountService:
             db.add(acc)
             db.flush()
 
-            # Create Balance
+            # Create Balance initialized to 0
             deposit_paise = int(round(deposit * 100))
             bal = AccountBalance(
                 account_number=acc_no,
-                balance_paise=deposit_paise,
+                balance_paise=0,
                 lien_paise=0,
             )
             db.add(bal)
+            db.commit()
+
+            # Post initial deposit through double-entry ledger if deposit > 0
+            if deposit > 0:
+                from backend.app.services.ledger.ledger_service import ledger_service, GL_CASH_VAULT
+                ledger_service.execute(
+                    transaction_type="DEPOSIT",
+                    amount_rupees=deposit,
+                    source_account=GL_CASH_VAULT,
+                    destination_account=acc_no,
+                    description="Initial Account Opening Deposit",
+                    actor="CUSTOMER_ONBOARDING",
+                    ip="127.0.0.1",
+                    metadata={"channel": "ONBOARDING", "initial_deposit": True}
+                )
 
             # Create Card if opted
             card_info = None

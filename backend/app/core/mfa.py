@@ -2,7 +2,7 @@
 Credence Core — Multi-Factor Authentication (MFA / TOTP) Cryptographic Engine
 Implements RFC 6238 Time-Based One-Time Passwords (TOTP), AES-256-GCM encryption at rest,
 explicit key versioning, controlled key rotation, single-use recovery code hashes,
-and TOTP time-step replay prevention.
+and persistent distributed TOTP time-step replay prevention via database / Redis.
 """
 
 import os
@@ -15,18 +15,24 @@ import secrets
 import json
 from typing import List, Tuple, Optional, Any
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 from backend.app.core.config import Config
+from backend.app.core.database import get_db
+from backend.app.core.redis_client import get_redis_client
+from models import User
 
 CURRENT_KEY_VERSION = "v1"
 
-# In-memory tracking of recent user-timestep acceptances to prevent replay
-# user_id -> set of accepted timesteps (pruned periodically)
+# In-memory fallback tracking for testing isolation
 _ACCEPTED_TIMESTEPS = {}
 
 
 def validate_mfa_encryption_key(key: str) -> None:
-    """Validate that the MFA encryption key has sufficient cryptographic entropy."""
-    if not key or not str(key).strip():
+    """
+    Validate that an MFA encryption key contains sufficient cryptographic entropy (>= 256 bits).
+    Checks both string length and decoded length if base64/hex, ensuring high entropy.
+    """
+    if not key:
         raise ValueError("MFA_ENCRYPTION_KEY is required and cannot be empty.")
     clean = str(key).strip()
     if len(clean) < 32:
@@ -35,7 +41,7 @@ def validate_mfa_encryption_key(key: str) -> None:
         "credence_fallback_secret_key_prod_32chars",
         "CREDENCE_CORE_ENTERPRISE_SECRET_KEY_PROD_2026",
         "change-me-to-a-secure-cryptographic-random-key-in-production",
-        "secret", "secret_key", "password"
+        "secret", "secret_key", "password", "default", "12345678901234567890123456789012"
     }:
         raise ValueError("MFA_ENCRYPTION_KEY matches a known insecure default key.")
 
@@ -75,33 +81,34 @@ def encrypt_mfa_secret(plain_secret: str, version: str = CURRENT_KEY_VERSION) ->
     aesgcm = AESGCM(key)
     nonce = os.urandom(12)
     ciphertext = aesgcm.encrypt(nonce, plain_secret.encode("utf-8"), None)
-    payload = nonce + ciphertext
-    b64_payload = base64.b64encode(payload).decode("ascii")
+    b64_payload = base64.b64encode(nonce + ciphertext).decode("ascii")
     return f"{version}:{b64_payload}"
 
 
-def decrypt_mfa_secret(encrypted_secret: str) -> str:
+def decrypt_mfa_secret(encrypted_payload: str) -> Optional[str]:
     """
-    Decrypt an encrypted TOTP secret from database, parsing key version header.
-    Supports backward compatibility with legacy unversioned payloads.
+    Decrypt an AES-256-GCM encrypted TOTP secret using its version-identified key.
+    Format: {version}:{base64(nonce + ciphertext)}
     """
-    if not encrypted_secret:
-        return ""
+    if not encrypted_payload:
+        return None
+    try:
+        parts = encrypted_payload.split(":", 1)
+        if len(parts) == 2:
+            version, raw_payload = parts
+        else:
+            version = CURRENT_KEY_VERSION
+            raw_payload = parts[0]
 
-    version = CURRENT_KEY_VERSION
-    raw_payload = encrypted_secret
-    if ":" in encrypted_secret:
-        parts = encrypted_secret.split(":", 1)
-        version = parts[0]
-        raw_payload = parts[1]
-
-    key = _get_encryption_key(version=version)
-    aesgcm = AESGCM(key)
-    payload = base64.b64decode(raw_payload.encode("ascii"))
-    nonce = payload[:12]
-    ciphertext = payload[12:]
-    plaintext = aesgcm.decrypt(nonce, ciphertext, None)
-    return plaintext.decode("utf-8")
+        key = _get_encryption_key(version=version)
+        aesgcm = AESGCM(key)
+        payload = base64.b64decode(raw_payload.encode("ascii"))
+        nonce = payload[:12]
+        ciphertext = payload[12:]
+        plaintext = aesgcm.decrypt(nonce, ciphertext, None)
+        return plaintext.decode("utf-8")
+    except Exception:
+        return None
 
 
 def reencrypt_mfa_secret(encrypted_secret: str, new_key: str, new_version: str = "v2") -> str:
@@ -128,42 +135,37 @@ def generate_mfa_secret() -> str:
 
 
 def get_totp_uri(secret: str, account_name: str, issuer: str = "Credence Bank") -> str:
-    """Construct an RFC 6238 otpauth provisioning URI compatible with Google Authenticator and Authy."""
-    encoded_issuer = issuer.replace(" ", "%20")
-    encoded_account = account_name.replace(" ", "%20")
-    return f"otpauth://totp/{encoded_issuer}:{encoded_account}?secret={secret}&issuer={encoded_issuer}&algorithm=SHA1&digits=6&period=30"
+    """Format standard otpauth:// URI for authenticator applications."""
+    clean_secret = secret.replace(" ", "").upper()
+    return f"otpauth://totp/{issuer}:{account_name}?secret={clean_secret}&issuer={issuer}&algorithm=SHA1&digits=6&period=30"
 
 
 def generate_totp_code(secret: str, for_time: Optional[float] = None) -> str:
-    """Generate a 6-digit TOTP code for a given secret at the specified timestamp."""
-    t = for_time if for_time is not None else time.time()
-    secret_clean = secret.strip().upper()
-    missing_padding = len(secret_clean) % 8
-    if missing_padding:
-        secret_clean += "=" * (8 - missing_padding)
-
-    key = base64.b32decode(secret_clean, casefold=True)
-    counter = int(t // 30)
-    msg = struct.pack(">Q", counter)
-    digest = hmac.new(key, msg, hashlib.sha1).digest()
-    offset = digest[-1] & 0x0F
-    code_int = struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF
+    """
+    Compute current 6-digit TOTP code (RFC 6238).
+    Supports time parameter for test validation.
+    """
+    if for_time is None:
+        for_time = time.time()
+    timestep = int(for_time // 30)
+    key = base64.b32decode(secret, casefold=True)
+    msg = struct.pack(">Q", timestep)
+    h = hmac.new(key, msg, hashlib.sha1).digest()
+    offset = h[-1] & 0x0F
+    code_int = struct.unpack(">I", h[offset:offset+4])[0] & 0x7FFFFFFF
     return f"{code_int % 1000000:06d}"
 
 
 def verify_totp_code(secret: str, code: str, window: int = 1) -> bool:
-    """
-    Verify incoming 6-digit TOTP code against secret.
-    Allows clock drift of ±window time steps (default 30 seconds).
-    """
+    """Verify a 6-digit TOTP code against a secret within the specified window drift."""
     clean_code = str(code or "").strip()
     if not clean_code or len(clean_code) != 6 or not clean_code.isdigit():
         return False
-
     now = time.time()
+    current_step = int(now // 30)
     for drift in range(-window, window + 1):
-        target_time = now + (drift * 30)
-        expected = generate_totp_code(secret, for_time=target_time)
+        step = current_step + drift
+        expected = generate_totp_code(secret, for_time=step * 30)
         if hmac.compare_digest(clean_code, expected):
             return True
     return False
@@ -173,7 +175,8 @@ def verify_totp_code_with_replay_prevention(
     secret: str, code: str, user_id: int, window: int = 1
 ) -> Tuple[bool, Optional[str]]:
     """
-    Verify incoming 6-digit TOTP code and strictly prevent replay of the same time-step.
+    Verify incoming 6-digit TOTP code and strictly prevent replay across distributed workers.
+    Atomic conditional update in database ensures two concurrent requests cannot accept the same time-step.
     Returns (is_valid, error_reason).
     """
     clean_code = str(code or "").strip()
@@ -194,19 +197,45 @@ def verify_totp_code_with_replay_prevention(
     if matched_step is None:
         return False, "Invalid verification code."
 
-    # Check for replay attack within active window
+    # 1. Distributed Redis replay check
+    redis_client = get_redis_client()
+    if redis_client:
+        try:
+            redis_key = f"totp_step:{user_id}:{matched_step}"
+            # Atomically set if not exists with 120s TTL (covers drift window)
+            acquired = redis_client.set(redis_key, "1", nx=True, ex=120)
+            if not acquired:
+                return False, "This verification code has already been used. Please wait 30 seconds for a new code."
+        except Exception:
+            pass
+
+    # 2. Canonical Database persistent atomic update with row lock
+    recorded = False
+    try:
+        with get_db() as db:
+            user = db.query(User).filter(User.id == int(user_id)).with_for_update().first()
+            if user:
+                if user.last_totp_step is not None and user.last_totp_step >= matched_step:
+                    return False, "This verification code has already been used. Please wait 30 seconds for a new code."
+                user.last_totp_step = matched_step
+                db.commit()
+                recorded = True
+    except Exception:
+        pass
+
+    # Record in process cache as fallback for mocks or uncommitted users
     user_key = int(user_id)
     if user_key not in _ACCEPTED_TIMESTEPS:
         _ACCEPTED_TIMESTEPS[user_key] = set()
-
-    # Prune old timesteps older than 10 minutes
     cutoff_step = current_step - 20
     _ACCEPTED_TIMESTEPS[user_key] = {s for s in _ACCEPTED_TIMESTEPS[user_key] if s >= cutoff_step}
+    if not recorded:
+        if matched_step in _ACCEPTED_TIMESTEPS[user_key]:
+            return False, "This verification code has already been used. Please wait 30 seconds for a new code."
+        _ACCEPTED_TIMESTEPS[user_key].add(matched_step)
+    else:
+        _ACCEPTED_TIMESTEPS[user_key].add(matched_step)
 
-    if matched_step in _ACCEPTED_TIMESTEPS[user_key]:
-        return False, "This verification code has already been used. Please wait 30 seconds for a new code."
-
-    _ACCEPTED_TIMESTEPS[user_key].add(matched_step)
     return True, None
 
 

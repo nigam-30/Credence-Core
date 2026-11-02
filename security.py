@@ -205,18 +205,12 @@ FAILED_ATTEMPTS_STORE = {}      # acc_no -> {"count": int, "lockout_until": floa
 IP_REQUEST_HISTORY = {}         # ip -> list of timestamp floats
 
 # Check Redis connectivity if REDIS_URL configured
-REDIS_CLIENT = None
-_redis_url = os.environ.get("REDIS_URL", "").strip()
-if _redis_url:
-    try:
-        import redis
-        _r = redis.Redis.from_url(_redis_url, decode_responses=True, socket_connect_timeout=2)
-        _r.ping()
-        REDIS_CLIENT = _r
-        security_logger.info("Connected to Redis distributed rate limiting and lockout service.")
-    except Exception as e:
-        security_logger.warning(f"Could not connect to Redis at {_redis_url}: {e}. Falling back to in-memory rate limiting.")
-        REDIS_CLIENT = None
+from backend.app.core.redis_client import get_redis_client, redact_redis_url
+try:
+    REDIS_CLIENT = get_redis_client()
+except Exception as e:
+    security_logger.error(f"Redis initialization error: {e}")
+    REDIS_CLIENT = None
 
 
 def is_account_locked(account_number: str) -> (bool, int):

@@ -34,6 +34,7 @@ class User(Base):
     mfa_secret = Column(String(255), nullable=True)
     mfa_recovery_codes = Column(Text, nullable=True)
     mfa_enrolled_at = Column(DateTime, nullable=True)
+    last_totp_step = Column(BigInteger, default=0, nullable=False)
     notifications_enabled = Column(Boolean, default=True, nullable=False)
     status = Column(String(20), default="ACTIVE", nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
@@ -490,3 +491,27 @@ class TransactionLimit(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
 
     account = relationship("Account", back_populates="transaction_limit")
+
+# ════════════ 21. FRAUD ALERTS ════════════
+class FraudAlert(Base):
+    __tablename__ = "fraud_alerts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    alert_id = Column(String(64), unique=True, nullable=False, index=True)
+    account_number = Column(String(32), ForeignKey("accounts.account_number", ondelete="CASCADE"), nullable=False, index=True)
+    amount_paise = Column(BigInteger, nullable=False)
+    tx_type = Column(String(50), nullable=False)
+    risk_score = Column(Integer, nullable=False)
+    risk_flags = Column(Text, nullable=False)
+    ip_address = Column(String(50), nullable=True)
+    status = Column(String(20), default="OPEN", nullable=False, index=True)
+    resolution_action = Column(String(50), nullable=True)
+    resolved_by = Column(String(50), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False, index=True)
+
+    account = relationship("Account")
+
+    __table_args__ = (
+        CheckConstraint("status IN ('OPEN', 'INVESTIGATING', 'RESOLVED', 'DISMISSED')", name="chk_fraud_alert_status"),
+    )

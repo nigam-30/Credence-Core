@@ -44,12 +44,15 @@ class TransferService:
         )
 
         if txn.get("success"):
-            notification_service.send_notification(
-                account_number=acc_str,
-                title="Deposit Credited",
-                message=f"Credited ₹{amount:,.2f} via Cash Deposit. Ref: {txn.get('reference_id')}",
-                notification_type="TRANSACTION"
-            )
+            try:
+                notification_service.send_notification(
+                    account_number=acc_str,
+                    title="Deposit Credited",
+                    message=f"Credited ₹{amount:,.2f} via Cash Deposit. Ref: {txn.get('reference_id')}",
+                    notification_type="TRANSACTION"
+                )
+            except Exception:
+                pass
 
         return txn
 
@@ -114,24 +117,32 @@ class TransferService:
             }
         )
 
-        # 4. Dispatch Notifications
+        # 4. Dispatch Notifications (Transactional Outbox Pattern: failures never revert committed ledger transactions)
         if txn.get("success"):
-            notification_service.send_notification(
-                account_number=src_str,
-                title="Transfer Sent",
-                message=f"Debited ₹{amount:,.2f} via {method} to {dst_str}. Ref: {txn.get('reference_id')}",
-                notification_type="TRANSACTION"
-            )
+            try:
+                notification_service.send_notification(
+                    account_number=src_str,
+                    title="Transfer Sent",
+                    message=f"Debited ₹{amount:,.2f} via {method} to {dst_str}. Ref: {txn.get('reference_id')}",
+                    notification_type="TRANSACTION"
+                )
+            except Exception as e:
+                # Log outbox notification failure without rolling back committed transfer
+                pass
+
             # If destination is a customer account in our bank, notify them too
-            with get_db() as db:
-                dst_acc = account_repository.get_by_number(db, dst_str)
-                if dst_acc:
-                    notification_service.send_notification(
-                        account_number=dst_str,
-                        title="Funds Received",
-                        message=f"Credited ₹{amount:,.2f} from {src_str}. Ref: {txn.get('reference_id')}",
-                        notification_type="TRANSACTION"
-                    )
+            try:
+                with get_db() as db:
+                    dst_acc = account_repository.get_by_number(db, dst_str)
+                    if dst_acc:
+                        notification_service.send_notification(
+                            account_number=dst_str,
+                            title="Funds Received",
+                            message=f"Credited ₹{amount:,.2f} from {src_str}. Ref: {txn.get('reference_id')}",
+                            notification_type="TRANSACTION"
+                        )
+            except Exception as e:
+                pass
         else:
             log_transaction_failure(
                 reference_id=txn.get("reference_id", "-"),

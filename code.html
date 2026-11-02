@@ -148,7 +148,7 @@
                     <button onclick="handleQuickDemoLogin()" class="px-6 py-3.5 bg-slate-950 hover:bg-slate-800 text-white font-bold text-sm rounded-2xl shadow-elevated transition-all flex items-center gap-2 cursor-pointer active:scale-95">
                         <span class="material-symbols-outlined text-base text-emerald-400">play_circle</span>
                         <span>Launch Demo Sandbox Account</span>
-                        <span class="text-slate-400 text-xs font-mono">(#40273146502136)</span>
+                        
                     </button>
                     <button onclick="openCreateAccountModal()" class="px-5 py-3.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-sm rounded-2xl shadow-subtle transition-all flex items-center gap-1.5 cursor-pointer">
                         <span class="material-symbols-outlined text-base">person_add</span>
@@ -174,7 +174,7 @@
                             <span class="material-symbols-outlined text-emerald-600 text-base">key</span>
                             <div class="truncate">
                                 <span class="font-bold text-slate-900">Demo User:</span>
-                                <span class="font-mono text-slate-600">40273146502136</span>
+                                <span id="demo-account-display" class="font-mono text-slate-600">Demo Sandbox</span>
                             </div>
                         </div>
                         <button onclick="handleQuickDemoLogin()" class="px-2.5 py-1 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-bold text-[11px] transition-colors shrink-0">
@@ -189,7 +189,7 @@
                             <div class="relative">
                                 <input type="text" id="login-acc-no" required maxlength="14"
                                     class="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 pl-10 text-sm font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-950 focus:border-slate-950 transition-all"
-                                    placeholder="40273146502136" />
+                                    placeholder="14-digit Account Number" />
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">badge</span>
                             </div>
                         </div>
@@ -252,10 +252,36 @@
     <!-- App JavaScript Controller -->
     <script src="/app.js"></script>
     <script>
-        function handleQuickDemoLogin() {
+        async function fetchDemoAccount() {
+            try {
+                const res = await fetch('/api/demo_info');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.account_number) {
+                        window._demoAccountNumber = data.account_number;
+                        const disp = document.getElementById('demo-account-display');
+                        if (disp) disp.textContent = data.account_number;
+                    }
+                }
+            } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', fetchDemoAccount);
+
+        async function handleQuickDemoLogin() {
+            let demoAcc = window._demoAccountNumber;
+            if (!demoAcc) {
+                try {
+                    const res = await fetch('/api/demo_info');
+                    if (res.ok) {
+                        const data = await res.json();
+                        demoAcc = data.account_number;
+                        window._demoAccountNumber = demoAcc;
+                    }
+                } catch(e) {}
+            }
             const accInput = document.getElementById('login-acc-no');
             const passInput = document.getElementById('login-password');
-            if (accInput) accInput.value = '40273146502136';
+            if (accInput && demoAcc) accInput.value = demoAcc;
             if (passInput) passInput.value = 'admin123';
             const btn = document.getElementById('btn-login-submit');
             if (btn) btn.click();
