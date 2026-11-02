@@ -50,7 +50,7 @@ int main() {
                 applyCreditCard(accounts[accNo]);
                 break;
             }
-            case 14: return 0;
+            case 14: cleanupAllAccounts(); return 0;
             default: cout << "Invalid choice.\n";
         }
     }

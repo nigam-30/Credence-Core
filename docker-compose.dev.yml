@@ -1,0 +1,49 @@
+version: '3.8'
+
+# ══════════════════════════════════════════════════════════════
+# CREDENCE CORE — LOCAL DEVELOPMENT DOCKER COMPOSE
+# Enables hot-reloading, debug logs, and exposed database port
+# ══════════════════════════════════════════════════════════════
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: credence_dev_db
+    environment:
+      POSTGRES_DB: credence_dev
+      POSTGRES_USER: dev_admin
+      POSTGRES_PASSWORD: dev_insecure_password_only
+    ports:
+      - "5432:5432"
+    volumes:
+      - dev_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev_admin -d credence_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: credence_dev_web
+    command: ["python", "flask_app.py"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      FLASK_ENV: development
+      FLASK_DEBUG: "1"
+      SECRET_KEY: "DEV_SECRET_KEY_FOR_LOCAL_DEBUGGING_ONLY"
+      DATABASE_URL: postgresql://dev_admin:dev_insecure_password_only@db:5432/credence_dev
+      PORT: "5000"
+      SESSION_COOKIE_SECURE: "false"
+      LOG_LEVEL: "DEBUG"
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+
+volumes:
+  dev_postgres_data:

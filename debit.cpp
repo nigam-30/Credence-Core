@@ -13,6 +13,10 @@ void debitPayment() {
     cin >> pin;
     cout << "Enter payment amount (INR): ";
     cin >> amount;
+    if (amount <= 0.0) {
+        cout << endl << "Invalid payment amount." << endl;
+        return;
+    }
 
     if (!binarySearch(accNo)) {
         cout << "\nAccount not found.\n";
@@ -42,5 +46,5 @@ void debitPayment() {
     cout << "Card Number : " << acc.card.cardNumber << endl;
     cout << "Name on Card: " << acc.card.nameOnCard << endl;
     cout << "Expiry Date : " << acc.card.expiry << endl;
-    cout << "CVV         : " << acc.card.cvv << endl;
+    cout << "CVV         : [PROTECTED]" << endl;
 }

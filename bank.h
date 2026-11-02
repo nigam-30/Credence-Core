@@ -82,5 +82,7 @@ void orderCheque();
 void addTransaction(Account& acc, const string& type, double amount);
 DebitCard generateDebitCard(const string& name);
 long long generateUniqueAccountNumber();
+void freeAccountHistory(Account& acc);
+void cleanupAllAccounts();
 
 #endif

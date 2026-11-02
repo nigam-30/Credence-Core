@@ -2,6 +2,37 @@
 // 100% Dynamic, Zero Hardcoded Values, Complete Feature Set
 
 // ════════════ GLOBAL STATE ════════════
+// Centralized XSS Sanitization & Fetch Interceptor (Phase 6.2 Hardening)
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+
+// Global Fetch Interceptor for central session expiration and CSRF management
+const _originalFetch = window.fetch;
+window.fetch = async function(...args) {
+    const response = await _originalFetch.apply(this, args);
+    if (response.status === 401) {
+        const url = String(args[0] || '');
+        if (!url.includes('/api/login') && !url.includes('/api/mfa/verify') && !url.includes('/api/demo_login') && !url.includes('/api/account/verify_pin')) {
+            showToast('Your session has expired. Please sign in again.', 'error');
+            sessionStorage.clear();
+            setTimeout(() => {
+                if (window.location.pathname !== '/' && window.location.pathname !== '/index') {
+                    window.location.href = '/?auth_required=true';
+                }
+            }, 1000);
+        }
+    }
+    return response;
+};
+
 let currentAccountData = null;
 let isBalanceHidden = true; // Balance hidden by default, unlocked with PIN
 
@@ -171,13 +202,30 @@ window.toggleBalanceVisibility = () => {
             submitText: 'Unlock Balance',
             onConfirm: async (modal, close) => {
                 const pin = modal.querySelector('#balance-unlock-pin').value.trim();
-                const expectedPin = String(currentAccountData?.pin || '1234');
                 if (!pin) {
                     showToast('Please enter your 4-digit PIN.', 'error');
                     return;
                 }
-                if (pin !== expectedPin && pin !== '1234') {
-                    showToast('Incorrect PIN. Access denied.', 'error');
+                if (pin.length !== 4 && pin.length !== 6) {
+                    showToast('PIN must be 4 or 6 digits.', 'error');
+                    return;
+                }
+                try {
+                    const res = await fetch('/api/account/verify_pin', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': getCsrfToken()
+                        },
+                        body: JSON.stringify({ pin })
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.success) {
+                        showToast(data.message || 'Incorrect PIN. Access denied.', 'error');
+                        return;
+                    }
+                } catch (err) {
+                    showToast('PIN verification service unavailable. Please try again.', 'error');
                     return;
                 }
 
@@ -217,7 +265,18 @@ window.switchAccount = (accNo) => {
 };
 
 // ════════════ LOGOUT ════════════
-window.logout = () => {
+window.logout = async () => {
+    try {
+        await fetch('/api/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            }
+        });
+    } catch (e) {
+        // Fall through to clear local session
+    }
     sessionStorage.clear();
     showToast('Signed out successfully.');
     setTimeout(() => window.location.href = '/', 500);
@@ -433,7 +492,7 @@ const syncAccountData = async () => {
         // Update Left Column Card Widget (Mask to last 4 digits)
         const cardNoEl = document.getElementById('ui-card-number');
         if (cardNoEl) {
-            const rawCard = String(data.card_number || data.account_number || '1234').replace(/\s+/g, '');
+            const rawCard = String(data.card_number || data.account_number || '').replace(/\s+/g, '');
             const last4 = rawCard.slice(-4);
             cardNoEl.textContent = `•••• •••• •••• ${last4}`;
         }
@@ -2827,7 +2886,7 @@ window.openCreateAccountModal = () => {
                         name,
                         email,
                         deposit,
-                        pin: pin || '1234',
+                        pin: pin,
                         address: 'Digital Banking User',
                         dob: '1995-05-15',
                         debit: 'y',

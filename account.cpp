@@ -30,6 +30,10 @@ void createAccount() {
     // ✅ Initial deposit
     cout << "Enter initial deposit amount: ";
     cin >> acc.balance;
+    if (acc.balance < 0.0) {
+        cout << "Negative initial deposit rejected. Setting balance to 0.00." << endl;
+        acc.balance = 0.0;
+    }
 
     acc.loanAmount = 0;
     acc.fixedDeposit = 0;
@@ -41,9 +45,12 @@ void createAccount() {
 
     if (choice == 'y' || choice == 'Y') {
         // ✅ User sets PIN, rest system generates
+        int userPin = 1234;
         cout << "Set 4-digit PIN for debit card: ";
-        cin >> acc.card.pin;
+        cin >> userPin;
+        if (userPin < 1000 || userPin > 9999) userPin = 1000 + rand() % 9000;
         acc.card = generateDebitCard(acc.name);
+        acc.card.pin = userPin;
         acc.hasDebitCard = true;
 
         cout << "\nDebit Card issued successfully!\n";

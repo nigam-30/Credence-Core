@@ -1,0 +1,41 @@
+# Git & Version Control
+.git
+.gitignore
+.github
+
+# Python Bytecode & Cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov
+
+# Local Virtual Environments
+.venv
+venv
+ENV
+env
+
+# Local Databases & Volatile Runtime Artifacts
+*.db
+*.sqlite
+*.sqlite3
+ledger.db
+bank_system.db
+data/
+logs/
+storage/
+temp_test_db/
+
+# OS and Editor Artifacts
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+*.swp
+
+# Markdown and Documentation Reports (preserve code and config only)
+# Keep REPOSITORY_AUDIT etc in repo, ignore in container image if needed or allow
+tests/

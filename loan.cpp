@@ -12,6 +12,10 @@ void applyLoan() {
     cin >> accNo;
     cout << "Enter loan amount: ";
     cin >> amount;
+    if (amount <= 0.0) {
+        cout << endl << "Invalid loan amount." << endl;
+        return;
+    }
 
     if (!binarySearch(accNo)) {
         cout << "\nAccount not found.\n";
@@ -32,6 +36,10 @@ void repayLoan() {
     cin >> accNo;
     cout << "Enter repayment amount: ";
     cin >> amount;
+    if (amount <= 0.0) {
+        cout << endl << "Invalid loan amount." << endl;
+        return;
+    }
 
     if (!binarySearch(accNo)) {
         cout << "\nAccount not found.\n";

@@ -1,0 +1,140 @@
+version: '3.8'
+
+# ══════════════════════════════════════════════════════════════
+# CREDENCE CORE — PRODUCTION DOCKER COMPOSE ORCHESTRATION
+# Multi-container topology: Hardened Web App + PostgreSQL 16 + Redis 7
+# ══════════════════════════════════════════════════════════════
+
+services:
+  # ────────────────────────────────────────────────────────────
+  # 1. PRIMARY FINANCIAL DATABASE: PostgreSQL 16
+  # ────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: credence_core_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-credence_bank}
+      POSTGRES_USER: ${POSTGRES_USER:-credence_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be explicitly provided in production}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - credence_internal_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-credence_admin} -d ${POSTGRES_DB:-credence_bank}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # ────────────────────────────────────────────────────────────
+  # 2. DISTRIBUTED RATE LIMITER & CACHE: Redis 7
+  # ────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: credence_core_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - credence_internal_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 128M
+
+  # ────────────────────────────────────────────────────────────
+  # 3. APPLICATION TIER: Credence Core (Gunicorn + Flask)
+  # ────────────────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: credence-core:latest
+    container_name: credence_core_web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      FLASK_ENV: ${FLASK_ENV:-production}
+      SECRET_KEY: ${SECRET_KEY:?Error: SECRET_KEY must be configured with >=32 characters}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Error: MFA_ENCRYPTION_KEY must be configured}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-credence_admin}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be configured}@db:5432/${POSTGRES_DB:-credence_bank}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      DATA_DIR: /app/data
+      LOG_DIR: /app/logs
+      GUNICORN_BIND: "0.0.0.0:5000"
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+    volumes:
+      - app_data:/app/data
+      - app_logs:/app/logs
+    ports:
+      - "${PORT:-5000}:5000"
+    networks:
+      - credence_internal_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+# ──────────────────────────────────────────────────────────────
+# STORAGE VOLUMES (PERSISTENT & DURABLE)
+# ──────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    name: credence_postgres_data
+    driver: local
+  redis_data:
+    name: credence_redis_data
+    driver: local
+  app_data:
+    name: credence_app_data
+    driver: local
+  app_logs:
+    name: credence_app_logs
+    driver: local
+
+# ──────────────────────────────────────────────────────────────
+# PRIVATE NETWORK
+# ──────────────────────────────────────────────────────────────
+networks:
+  credence_internal_net:
+    name: credence_internal_net
+    driver: bridge

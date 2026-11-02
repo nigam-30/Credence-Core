@@ -9,6 +9,10 @@ void manageFD() {
     cin >> accNo;
     cout << "Enter FD amount: ";
     cin >> amount;
+    if (amount <= 0.0) {
+        cout << endl << "Invalid FD amount." << endl;
+        return;
+    }
 
     if (!binarySearch(accNo)) {
         cout << "\nAccount not found.\n";

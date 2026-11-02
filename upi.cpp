@@ -35,6 +35,10 @@ void payUPI() {
     cin >> toUPI;
     cout << "Enter amount (INR): ";
     cin >> amount;
+    if (amount <= 0.0) {
+        cout << endl << "Invalid UPI payment amount." << endl;
+        return;
+    }
 
     if (upiMap.find(fromUPI) == upiMap.end() || upiMap.find(toUPI) == upiMap.end()) {
         cout << "\nInvalid UPI ID(s).\n";

@@ -20,13 +20,17 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IS_SERVERLESS = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") or not os.access(BASE_DIR, os.W_OK))
 DATA_DIR = "/tmp" if IS_SERVERLESS else BASE_DIR
 
-app = Flask(__name__, static_folder=BASE_DIR, static_url_path="")
+from backend.app import create_app
+app = create_app()
+app.static_folder = BASE_DIR
+app.static_url_path = ""
 
 PROFILES_JSON = os.path.join(DATA_DIR, "user_profiles.json")
 BANK_DATA_JSON = os.path.join(DATA_DIR, "bank_data.json")
 INVESTMENTS_JSON = os.path.join(DATA_DIR, "user_investments.json")
 
 def load_profiles():
+    data = {}
     if not os.path.exists(PROFILES_JSON):
         base_file = os.path.join(BASE_DIR, "user_profiles.json")
         if os.path.exists(base_file):
@@ -35,15 +39,26 @@ def load_profiles():
                     data = json.load(f)
                 with open(PROFILES_JSON, "w") as f:
                     json.dump(data, f, indent=4)
-                return data
             except Exception:
                 pass
-        return {}
+    else:
+        try:
+            with open(PROFILES_JSON, "r") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+
     try:
-        with open(PROFILES_JSON, "r") as f:
-            return json.load(f)
+        from database import get_db
+        from models import AccountBalance
+        with get_db() as db:
+            balances = db.query(AccountBalance).all()
+            for b in balances:
+                if b.account_number in data:
+                    data[b.account_number]["balance"] = f"{b.balance_paise / 100:.2f}"
     except Exception:
-        return {}
+        pass
+    return data
 
 def save_profiles(data):
     try:

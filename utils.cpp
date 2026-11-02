@@ -81,12 +81,28 @@ void showTestInfo() {
             cout << "System Debit Card : " << sysAcc.card.cardNumber << endl;
             cout << "Name on Card      : " << sysAcc.card.nameOnCard << endl;
             cout << "Expiry Date       : " << sysAcc.card.expiry << endl;
-            cout << "CVV               : " << sysAcc.card.cvv << endl;
-            cout << "PIN               : " << sysAcc.card.pin << endl;
+            cout << "CVV               : [PROTECTED]" << endl;
+            cout << "PIN               : [PROTECTED]" << endl;
         } else {
             cout << "System Debit Card : [Not Assigned]\n";
         }
     }
 
     cout << "-----------------\n";
+}
+
+void freeAccountHistory(Account& acc) {
+    Transaction* curr = acc.history;
+    while (curr) {
+        Transaction* next = curr->next;
+        delete curr;
+        curr = next;
+    }
+    acc.history = nullptr;
+}
+
+void cleanupAllAccounts() {
+    for (auto& pair : accounts) {
+        freeAccountHistory(pair.second);
+    }
 }

@@ -4,6 +4,7 @@ using namespace std;
 
 // ✅ Eligibility check
 bool checkCreditCardEligibility(Account &acc) {
+    (void)acc;
     int age;
     double income;
     int cibil;
@@ -56,7 +57,7 @@ void applyCreditCard(Account &acc) {
 
     // Generate card details
     acc.hasCreditCard = true;
-    acc.creditCardNumber = "5100" + to_string(rand() % 90000000 + 10000000);
+    acc.creditCardNumber = "5100 " + to_string(1000 + rand() % 9000) + " " + to_string(1000 + rand() % 9000) + " " + to_string(1000 + rand() % 9000);
     acc.creditCardLimit = (acc.balance >= 100000) ? 200000 : 100000;
 
     cout << "\n🎉 Credit Card issued successfully!\n";
