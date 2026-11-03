@@ -1,0 +1,33 @@
+{
+    "sample_user": {
+        "account_number": "40273146502136",
+        "customer_id": "CUST-DEMO-001",
+        "name": "Demo User",
+        "email": "demo@credence.bank",
+        "role": "user",
+        "employment_type": "Salaried",
+        "pan": "ABCDE1234F"
+    },
+    "sample_clearing_account": {
+        "account_number": "99999999999999",
+        "customer_id": "SYS-CLEARING-01",
+        "name": "Credence Clearing & Settlement",
+        "email": "clearing@credence.bank",
+        "role": "admin"
+    },
+    "sample_investment_portfolio": {
+        "sips": [
+            {
+                "fund_id": "MF-NIFTY50",
+                "fund_name": "Credence NIFTY 50 Bluechip Index Fund",
+                "monthly_amount": 1000.0,
+                "sip_day": 5
+            }
+        ],
+        "gold": {
+            "grams": 0.5,
+            "avg_buy_price": 7600.0,
+            "total_invested": 3800.0
+        }
+    }
+}

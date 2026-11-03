@@ -1,47 +1,94 @@
-# Python
+# ==============================================================================
+# Credence Core — Repository Git Ignore Policy
+# Phase 6.4 Hardened & Production-Ready
+# ==============================================================================
+
+# Environment & Local Secrets
+.env
+.env.*
+!.env.example
+
+# Python Bytecode, Compilations & Caches
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
 venv/
 env/
-.env
+.venv/
 
-# C++ Build Output
+# C++ Build Outputs & Compiler Artifacts
 *.exe
 *.out
 *.o
 *.obj
 *.dll
+*.so
+*.dylib
 *.class
+bin/
+build_cpp/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
 
-# Auto-generated project data files
-user_profiles.json
-bank_data.json
-
-# Generated Statement PDFs
-*.pdf
-statements/
-
-# Databases, backups, logs and test caches
+# Runtime Databases, Journals, Backups & Test Artifacts
 *.db
+*.sqlite
+*.sqlite3
 *.db-journal
 *.db-wal
 *.db-shm
 *.bak
 *.pre_restore_bak
-*.log
-.pytest_cache/
 db_rollback_backups/
-*.zip
+runtime_backups/
+temp_test_db/
 
-# Operating System Files
+# Legacy JSON Databases & Data Files
+user_profiles.json
+bank_data.json
+user_investments.json
+
+# Logs & Crash Dumps
+*.log
+logs/
+*.dump
+*.stackdump
+
+# Generated PDFs & Statements
+*.pdf
+statements/
+exports/
+
+# Archives & Temporary Packages
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+
+# Node / Frontend Artifacts
+node_modules/
+coverage/
+
+# OS Specific Files
 .DS_Store
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# IDE and Editor Directories
+# IDE & Editor Configurations
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
