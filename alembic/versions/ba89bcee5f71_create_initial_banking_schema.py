@@ -57,8 +57,9 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.CheckConstraint("state IN ('PENDING', 'PROCESSING', 'SUCCESSFUL', 'FAILED', 'REVERSED')", name='chk_transaction_state'),
     sa.CheckConstraint('amount_paise > 0', name='chk_positive_txn_amount'),
-    sa.ForeignKeyConstraint(['original_reference_id'], ['transactions.reference_id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('reference_id', name='uq_transactions_reference_id'),
+    sa.ForeignKeyConstraint(['original_reference_id'], ['transactions.reference_id'], ondelete='SET NULL')
     )
     with op.batch_alter_table('transactions', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_transactions_created_at'), ['created_at'], unique=False)
@@ -90,7 +91,8 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.CheckConstraint("role IN ('user', 'admin', 'compliance')", name='chk_user_role'),
     sa.CheckConstraint("status IN ('ACTIVE', 'SUSPENDED', 'LOCKED')", name='chk_user_status'),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('customer_id', name='uq_users_customer_id')
     )
     with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_users_customer_id'), ['customer_id'], unique=True)
@@ -110,8 +112,9 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.CheckConstraint("status IN ('ACTIVE', 'FROZEN', 'CLOSED')", name='chk_account_status'),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('account_number', name='uq_accounts_account_number'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='SET NULL')
     )
     with op.batch_alter_table('accounts', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_accounts_account_number'), ['account_number'], unique=True)

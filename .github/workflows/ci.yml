@@ -140,16 +140,16 @@ jobs:
 
       - name: Run Database Migration Verification
         env:
-          DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/credence_test
-          TEST_DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/credence_test
+          DATABASE_URL: postgresql://postgres:test_password_123@127.0.0.1:5432/credence_test
+          TEST_DATABASE_URL: postgresql://postgres:test_password_123@127.0.0.1:5432/credence_test
         run: |
           echo "Running database schema initialization and Alembic migrations..."
           python -m alembic upgrade head
 
       - name: Execute Full Automated Test Suite (Pytest)
         env:
-          DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/credence_test
-          TEST_DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/credence_test
+          DATABASE_URL: postgresql://postgres:test_password_123@127.0.0.1:5432/credence_test
+          TEST_DATABASE_URL: postgresql://postgres:test_password_123@127.0.0.1:5432/credence_test
           TESTING: "true"
           SECRET_KEY: "CI_TEST_SECRET_KEY_FOR_PIPELINE_VALIDATION_32CHARS"
           MFA_ENCRYPTION_KEY: "CI_MFA_ENCRYPTION_KEY_FOR_PIPELINE_VALIDATION_32CHARS"

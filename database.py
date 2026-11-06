@@ -239,7 +239,12 @@ if IS_TESTING:
             temp_db = os.path.join(tempfile.gettempdir(), f"credence_test_isolated_{os.getpid()}.db")
             test_url = f"sqlite:///{temp_db.replace(os.sep, '/')}"
     validate_test_database_safety(test_url)
-    DATABASE_URL = test_url
+    if test_url.startswith("postgres://"):
+        DATABASE_URL = test_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif test_url.startswith("postgresql://") and "+psycopg2" not in test_url:
+        DATABASE_URL = test_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    else:
+        DATABASE_URL = test_url
 elif RAW_DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = RAW_DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
 elif RAW_DATABASE_URL.startswith("postgresql://") and "+psycopg2" not in RAW_DATABASE_URL:
@@ -436,6 +441,10 @@ def configure_engine(new_url: str):
     global engine, DATABASE_URL, IS_POSTGRES
     if os.environ.get("FLASK_ENV", "").lower() == "testing":
         validate_test_database_safety(new_url)
+    if new_url.startswith("postgres://"):
+        new_url = new_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif new_url.startswith("postgresql://") and "+psycopg2" not in new_url:
+        new_url = new_url.replace("postgresql://", "postgresql+psycopg2://", 1)
     DATABASE_URL = new_url
     IS_POSTGRES = DATABASE_URL.startswith("postgresql")
     kwargs = {"echo": False}
