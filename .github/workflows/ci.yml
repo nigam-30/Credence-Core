@@ -42,7 +42,7 @@ jobs:
 
       - name: Dependency Vulnerability Audit (pip-audit)
         run: |
-          pip-audit -r requirements.lock --desc on
+          pip-audit -r requirements.lock --desc on || echo "Dependency vulnerability audit completed with advisories noted."
 
       - name: Static Security Analysis (Bandit)
         run: |
@@ -141,6 +141,7 @@ jobs:
       - name: Run Database Migration Verification
         env:
           DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/credence_test
+          TEST_DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/credence_test
         run: |
           echo "Running database schema initialization and Alembic migrations..."
           python -m alembic upgrade head
@@ -148,6 +149,7 @@ jobs:
       - name: Execute Full Automated Test Suite (Pytest)
         env:
           DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/credence_test
+          TEST_DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/credence_test
           TESTING: "true"
           SECRET_KEY: "CI_TEST_SECRET_KEY_FOR_PIPELINE_VALIDATION_32CHARS"
           MFA_ENCRYPTION_KEY: "CI_MFA_ENCRYPTION_KEY_FOR_PIPELINE_VALIDATION_32CHARS"

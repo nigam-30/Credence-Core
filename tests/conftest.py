@@ -219,7 +219,6 @@ def restore_test_database_isolation():
     Wipes any uncommitted or committed test writes and restores the exact baseline state.
     Fails closed if restoration encounters any error.
     """
-    global _golden_snapshot_conn
     try:
         SessionLocal.remove()
         engine.dispose()

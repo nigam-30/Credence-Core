@@ -24,8 +24,9 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-# Set sqlalchemy.url dynamically from database module if not already configured
-if not config.get_main_option("sqlalchemy.url"):
+# Set sqlalchemy.url dynamically from database module or environment if not configured
+current_option = config.get_main_option("sqlalchemy.url")
+if not current_option or "driver://user:pass" in current_option or current_option.startswith("driver:"):
     config.set_main_option("sqlalchemy.url", get_db_url())
 
 if os.environ.get("FLASK_ENV", "").lower() == "testing":

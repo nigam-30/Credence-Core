@@ -131,14 +131,27 @@ def validate_test_database_safety(url: str, raw_database_url: str = None):
     url_lower = url_str.lower()
     comp_raw = (raw_database_url if raw_database_url is not None else os.environ.get("DATABASE_URL", "")).strip()
 
-    # Rule 1: Normalized URL comparison - reject if TEST_DATABASE_URL matches DATABASE_URL
+    # Rule 1: Normalized URL comparison - reject if TEST_DATABASE_URL matches production/application DATABASE_URL
     norm_test = normalize_database_url(url_str)
-    if comp_raw:
-        norm_raw = normalize_database_url(comp_raw)
+    if raw_database_url is not None:
+        norm_raw = normalize_database_url(raw_database_url)
         if norm_test and norm_raw and norm_test == norm_raw:
             raise RuntimeError(
-                f"FATAL: TEST_DATABASE_URL cannot match production/application DATABASE_URL ({mask_database_url(comp_raw)})!"
+                f"FATAL: TEST_DATABASE_URL cannot match production/application DATABASE_URL ({mask_database_url(raw_database_url)})!"
             )
+    else:
+        comp_raw = os.environ.get("DATABASE_URL", "").strip()
+        if comp_raw:
+            norm_raw = normalize_database_url(comp_raw)
+            if norm_test and norm_raw and norm_test == norm_raw:
+                # If comp_raw is a persistent or non-test database, reject test URL matching it
+                parsed_comp = urlparse(comp_raw)
+                db_name = (parsed_comp.path or "").lstrip("/").lower()
+                is_isolated_test_db = ("test" in db_name and "credence_core.db" not in comp_raw.lower())
+                if not is_isolated_test_db:
+                    raise RuntimeError(
+                        f"FATAL: TEST_DATABASE_URL cannot match production/application DATABASE_URL ({mask_database_url(comp_raw)})!"
+                    )
 
     # Rule 2: Production keywords / host markers
     if any(m in url_lower for m in PROD_MARKERS):
@@ -218,9 +231,13 @@ def validate_test_database_safety(url: str, raw_database_url: str = None):
 if IS_TESTING:
     test_url = os.environ.get("TEST_DATABASE_URL", "").strip()
     if not test_url:
-        import tempfile
-        temp_db = os.path.join(tempfile.gettempdir(), f"credence_test_isolated_{os.getpid()}.db")
-        test_url = f"sqlite:///{temp_db.replace(os.sep, '/')}"
+        raw_env_url = RAW_DATABASE_URL.strip()
+        if raw_env_url and "postgres" in raw_env_url.lower() and "test" in raw_env_url.lower():
+            test_url = raw_env_url
+        else:
+            import tempfile
+            temp_db = os.path.join(tempfile.gettempdir(), f"credence_test_isolated_{os.getpid()}.db")
+            test_url = f"sqlite:///{temp_db.replace(os.sep, '/')}"
     validate_test_database_safety(test_url)
     DATABASE_URL = test_url
 elif RAW_DATABASE_URL.startswith("postgres://"):
@@ -416,7 +433,7 @@ def drop_db():
 
 def configure_engine(new_url: str):
     """Dynamically rebind engine and session factory to an isolated database URL."""
-    global engine, DATABASE_URL, IS_POSTGRES, SessionFactory, SessionLocal
+    global engine, DATABASE_URL, IS_POSTGRES
     if os.environ.get("FLASK_ENV", "").lower() == "testing":
         validate_test_database_safety(new_url)
     DATABASE_URL = new_url
