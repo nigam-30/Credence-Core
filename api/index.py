@@ -6,7 +6,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from flask_app import app
+from backend.app import create_app
+app = create_app()
+app.static_folder = BASE_DIR
+app.static_url_path = ""
 
 class VercelPathMiddleware:
     def __init__(self, wsgi_app):

@@ -204,24 +204,34 @@ LOCKOUT_DURATION_SECONDS = 900  # 15 minutes
 FAILED_ATTEMPTS_STORE = {}      # acc_no -> {"count": int, "lockout_until": float}
 IP_REQUEST_HISTORY = {}         # ip -> list of timestamp floats
 
-# Check Redis connectivity if REDIS_URL configured
-from backend.app.core.redis_client import get_redis_client, redact_redis_url
-try:
-    REDIS_CLIENT = get_redis_client()
-except Exception as e:
-    security_logger.error(f"Redis initialization error: {e}")
-    REDIS_CLIENT = None
+# Redis connectivity resolved lazily to prevent module import cycles
+REDIS_CLIENT = None
+_REDIS_INITIALIZED = False
+
+def get_active_redis():
+    """Retrieve active Redis client lazily without circular import cycles."""
+    global REDIS_CLIENT, _REDIS_INITIALIZED
+    if not _REDIS_INITIALIZED:
+        _REDIS_INITIALIZED = True
+        try:
+            from backend.app.core.redis_client import get_redis_client
+            REDIS_CLIENT = get_redis_client()
+        except Exception as e:
+            security_logger.error(f"Redis initialization error: {e}")
+            REDIS_CLIENT = None
+    return REDIS_CLIENT
 
 
 def is_account_locked(account_number: str) -> (bool, int):
     """Check whether account is locked due to consecutive authentication failures."""
     acc = str(account_number)
-    if REDIS_CLIENT:
+    r_client = get_active_redis()
+    if r_client:
         try:
             key = f"lockout:{acc}"
-            val = REDIS_CLIENT.get(key)
+            val = r_client.get(key)
             if val and int(val) >= MAX_FAILED_ATTEMPTS:
-                ttl = REDIS_CLIENT.ttl(key)
+                ttl = r_client.ttl(key)
                 return True, max(1, ttl)
             return False, 0
         except Exception:
@@ -243,16 +253,17 @@ def record_failed_attempt(account_number: str, ip: str) -> (bool, int):
     """Increments failure count and triggers lockout if threshold reached."""
     acc = str(account_number)
     now = time.time()
-    if REDIS_CLIENT:
+    r_client = get_active_redis()
+    if r_client:
         try:
             key = f"lockout:{acc}"
-            fails = REDIS_CLIENT.incr(key)
+            fails = r_client.incr(key)
             if fails == 1:
-                REDIS_CLIENT.expire(key, LOCKOUT_DURATION_SECONDS)
+                r_client.expire(key, LOCKOUT_DURATION_SECONDS)
             if fails >= MAX_FAILED_ATTEMPTS:
-                ttl = REDIS_CLIENT.ttl(key)
+                ttl = r_client.ttl(key)
                 if ttl <= 0:
-                    REDIS_CLIENT.expire(key, LOCKOUT_DURATION_SECONDS)
+                    r_client.expire(key, LOCKOUT_DURATION_SECONDS)
                     ttl = LOCKOUT_DURATION_SECONDS
                 log_auth_lockout(acc, ip, ttl)
                 return True, ttl
@@ -273,9 +284,10 @@ def record_failed_attempt(account_number: str, ip: str) -> (bool, int):
 def reset_failed_attempts(account_number: str):
     """Resets failed attempts after successful authentication."""
     acc = str(account_number)
-    if REDIS_CLIENT:
+    r_client = get_active_redis()
+    if r_client:
         try:
-            REDIS_CLIENT.delete(f"lockout:{acc}")
+            r_client.delete(f"lockout:{acc}")
         except Exception:
             pass
     FAILED_ATTEMPTS_STORE.pop(acc, None)
@@ -284,10 +296,11 @@ def reset_failed_attempts(account_number: str):
 def check_ip_rate_limit(ip: str, max_requests: int = 60, window_seconds: int = 60) -> bool:
     """Returns True if request is allowed, False if rate limited."""
     now = time.time()
-    if REDIS_CLIENT:
+    r_client = get_active_redis()
+    if r_client:
         try:
             key = f"ratelimit:{ip}"
-            pipe = REDIS_CLIENT.pipeline()
+            pipe = r_client.pipeline()
             cutoff = now - window_seconds
             pipe.zremrangebyscore(key, 0, cutoff)
             pipe.zadd(key, {f"{now}_{secrets.token_hex(4)}": now})
@@ -360,6 +373,10 @@ def validate_csrf(req) -> bool:
     if hasattr(req, "current_session") and req.current_session and req.current_session.csrf_token:
         if hmac.compare_digest(str(req.current_session.csrf_token), str(client_csrf)):
             return True
+
+    cookie_csrf = req.cookies.get("csrf_token")
+    if cookie_csrf and hmac.compare_digest(str(cookie_csrf), str(client_csrf)):
+        return True
 
     return False
 

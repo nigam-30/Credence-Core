@@ -151,7 +151,7 @@ class Phase61RemediationTestSuite(unittest.TestCase):
             token_h = hashlib.sha256(token.encode("utf-8")).hexdigest()
             db.query(SessionRecord).filter(
                 (SessionRecord.session_token_hash == token_h) | (SessionRecord.session_id == token)
-            ).update({"expires_at": datetime.datetime.utcnow() - datetime.timedelta(minutes=5)})
+            ).update({"expires_at": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(minutes=5)})
             db.commit()
 
         # Request with fresh client without cookies to test expired token in header

@@ -67,8 +67,12 @@ logs/
 
 # Generated PDFs & Statements
 *.pdf
-statements/
-exports/
+/statements/
+/exports/
+
+# Temporary & Scratch Files
+*.tmp
+*.temp
 
 # Archives & Temporary Packages
 *.zip

@@ -11,6 +11,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from database import Base
 
+def get_utc_now() -> datetime.datetime:
+    """Return timezone-naive UTC datetime for cross-database compatibility without deprecation warnings."""
+    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
 
 # ════════════ 1. USERS ════════════
 class User(Base):
@@ -37,8 +41,8 @@ class User(Base):
     last_totp_step = Column(BigInteger, default=0, nullable=False)
     notifications_enabled = Column(Boolean, default=True, nullable=False)
     status = Column(String(20), default="ACTIVE", nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     # Relationships
     accounts = relationship("Account", back_populates="user", cascade="all, delete-orphan")
@@ -63,8 +67,8 @@ class Account(Base):
     daily_transfer_limit_paise = Column(BigInteger, default=50000000, nullable=False)  # ₹5,00,000
     daily_transferred_paise = Column(BigInteger, default=0, nullable=False)
     last_limit_reset_date = Column(String(20), nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     # Relationships
     user = relationship("User", back_populates="accounts")
@@ -97,7 +101,7 @@ class AccountBalance(Base):
     balance_paise = Column(BigInteger, default=0, nullable=False)
     lien_paise = Column(BigInteger, default=0, nullable=False)
     version = Column(Integer, default=1, nullable=False)  # Optimistic concurrency locking
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="balance_record")
 
@@ -123,8 +127,8 @@ class Transaction(Base):
     metadata_json = Column(Text, nullable=True)
     error_reason = Column(Text, nullable=True)
     original_reference_id = Column(String(64), ForeignKey("transactions.reference_id", ondelete="SET NULL"), nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False, index=True)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False, index=True)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     # Relationships
     ledger_entries = relationship("LedgerEntry", back_populates="transaction", cascade="all, delete-orphan")
@@ -147,7 +151,7 @@ class LedgerEntry(Base):
     amount_paise = Column(BigInteger, nullable=False)
     running_balance_paise = Column(BigInteger, nullable=False)
     description = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False, index=True)
 
     transaction = relationship("Transaction", back_populates="ledger_entries")
 
@@ -171,8 +175,8 @@ class Card(Base):
     cvv_hash = Column(String(255), nullable=True)
     credit_limit_paise = Column(BigInteger, default=0)
     status = Column(String(20), default="ACTIVE", nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="cards")
 
@@ -191,8 +195,8 @@ class UPIProfile(Base):
     upi_id = Column(String(100), unique=True, nullable=False, index=True)
     upi_pin_hash = Column(String(255), nullable=True)
     status = Column(String(20), default="ACTIVE", nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="upi_profile")
 
@@ -214,8 +218,8 @@ class FixedDeposit(Base):
     maturity_amount_paise = Column(BigInteger, nullable=False)
     maturity_date = Column(String(30), nullable=True)
     status = Column(String(20), default="ACTIVE", nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="fixed_deposits")
 
@@ -240,8 +244,8 @@ class Loan(Base):
     tenure_months = Column(Integer, default=24)
     monthly_emi_paise = Column(BigInteger, default=0)
     status = Column(String(20), default="ACTIVE", nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="loans")
 
@@ -260,8 +264,8 @@ class Investment(Base):
     gold_grams = Column(Numeric(10, 4), default=0.0, nullable=False)
     gold_total_invested_paise = Column(BigInteger, default=0, nullable=False)
     gold_avg_buy_price_paise = Column(BigInteger, default=0, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="investment")
 
@@ -286,8 +290,8 @@ class SIP(Base):
     status = Column(String(20), default="Active", nullable=False)
     start_date = Column(String(20), nullable=True)
     next_date = Column(String(20), nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="sips")
 
@@ -314,8 +318,8 @@ class IPOApplication(Base):
     demat_id = Column(String(50), nullable=True)
     status = Column(String(50), default="Application Submitted", nullable=False)
     applied_date = Column(String(20), nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="ipo_applications")
 
@@ -336,8 +340,8 @@ class RecurringDeposit(Base):
     maturity_amount_paise = Column(BigInteger, nullable=False)
     status = Column(String(20), default="Active", nullable=False)
     start_date = Column(String(20), nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="recurring_deposits")
 
@@ -353,8 +357,8 @@ class Beneficiary(Base):
     ifsc_code = Column(String(20), default="CRDN0001001", nullable=False)
     transfer_type = Column(String(20), default="IMPS", nullable=False)
     status = Column(String(20), default="ACTIVE", nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="beneficiaries")
 
@@ -379,8 +383,8 @@ class SessionRecord(Base):
     user_agent = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     expires_at = Column(DateTime, nullable=False, index=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    last_active_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    last_active_at = Column(DateTime, default=get_utc_now, nullable=False)
 
     user = relationship("User", back_populates="sessions")
 
@@ -398,7 +402,7 @@ class AuditLog(Base):
     to_state = Column(String(20), nullable=True)
     ip_address = Column(String(50), nullable=True)
     details_json = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False, index=True)
 
 
 class AuditTrail(Base):
@@ -412,7 +416,7 @@ class AuditTrail(Base):
     actor = Column(String(50), default="SYSTEM")
     ip_address = Column(String(50), nullable=True)
     details_json = Column(Text, nullable=True)
-    timestamp = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    timestamp = Column(DateTime, default=get_utc_now, nullable=False)
 
 
 # ════════════ 17. NOTIFICATIONS ════════════
@@ -425,7 +429,7 @@ class Notification(Base):
     message = Column(Text, nullable=False)
     notification_type = Column(String(30), default="TRANSACTION", nullable=False)
     is_read = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False, index=True)
 
     account = relationship("Account", back_populates="notifications")
 
@@ -442,8 +446,8 @@ class Dispute(Base):
     disputed_amount_paise = Column(BigInteger, nullable=False)
     status = Column(String(30), default="SUBMITTED", nullable=False)
     resolution_notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="disputes")
     transaction = relationship("Transaction", back_populates="disputes")
@@ -467,8 +471,8 @@ class SupportTicket(Base):
     message = Column(Text, nullable=False)
     admin_response = Column(Text, nullable=True)
     resolved_by = Column(String(50), nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False, index=True)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False, index=True)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="support_tickets")
 
@@ -487,8 +491,8 @@ class TransactionLimit(Base):
     daily_limit_paise = Column(BigInteger, default=50000000, nullable=False)        # Default ₹500,000.00
     per_txn_limit_paise = Column(BigInteger, default=10000000, nullable=False)      # Default ₹100,000.00
     approval_threshold_paise = Column(BigInteger, default=5000000, nullable=False)  # Default ₹50,000.00
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     account = relationship("Account", back_populates="transaction_limit")
 
@@ -508,7 +512,7 @@ class FraudAlert(Base):
     resolution_action = Column(String(50), nullable=True)
     resolved_by = Column(String(50), nullable=True)
     resolved_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False, index=True)
 
     account = relationship("Account")
 

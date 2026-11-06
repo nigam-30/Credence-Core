@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.lock
           pip install flake8 bandit pip-audit
 
       - name: Run Flake8 Syntax & Style Linting
@@ -42,11 +42,11 @@ jobs:
 
       - name: Dependency Vulnerability Audit (pip-audit)
         run: |
-          pip-audit --desc on || echo "pip-audit completed with warnings"
+          pip-audit -r requirements.lock --desc on
 
       - name: Static Security Analysis (Bandit)
         run: |
-          bandit -r backend -ll -ii || echo "Bandit scan completed"
+          bandit -r backend -ll -ii
 
   # ══════════════════════════════════════════════════════════════
   # 2. C++ ENGINE COMPILATION & HARNESS VERIFICATION
@@ -136,22 +136,23 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.lock
 
       - name: Run Database Migration Verification
         env:
           DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/credence_test
         run: |
           echo "Running database schema initialization and Alembic migrations..."
-          python -c "from backend.app.core.database import init_db; init_db()"
+          python -m alembic upgrade head
 
-      - name: Execute Full Automated Test Suite (Unittest)
+      - name: Execute Full Automated Test Suite (Pytest)
         env:
           DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/credence_test
           TESTING: "true"
-          SECRET_KEY: "CI_TEST_SECRET_KEY_FOR_PIPELINE_VALIDATION"
+          SECRET_KEY: "CI_TEST_SECRET_KEY_FOR_PIPELINE_VALIDATION_32CHARS"
+          MFA_ENCRYPTION_KEY: "CI_MFA_ENCRYPTION_KEY_FOR_PIPELINE_VALIDATION_32CHARS"
         run: |
-          python -m unittest discover tests
+          python -m pytest -v tests
 
   # ══════════════════════════════════════════════════════════════
   # 5. DOCKER BUILD VERIFICATION & CONTAINER SMOKE TEST
@@ -165,7 +166,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: actions/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Production Docker Image
         uses: docker/build-push-action@v5
@@ -189,10 +190,12 @@ jobs:
         run: |
           docker run -d --name credence-smoke \
             -p 5000:5000 \
-            -e SECRET_KEY="CI_SMOKE_TEST_SECRET_KEY" \
-            -e FLASK_ENV="production" \
+            -e SECRET_KEY="ci_smoke_test_secure_cryptographic_key_32chars" \
+            -e MFA_ENCRYPTION_KEY="ci_smoke_mfa_secure_crypto_key_32chars" \
+            -e FLASK_ENV="testing" \
             credence-core:ci
           
           sleep 5
           curl -f http://localhost:5000/health/live || (docker logs credence-smoke && exit 1)
+          curl -f http://localhost:5000/health/ready || (docker logs credence-smoke && exit 1)
           docker stop credence-smoke

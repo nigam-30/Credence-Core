@@ -1,7 +1,13 @@
 # Git & Version Control
 .git
 .gitignore
+.gitattributes
 .github
+
+# Secrets & Environment Configurations
+.env
+.env.*
+*.env
 
 # Python Bytecode & Cache
 __pycache__
@@ -20,8 +26,11 @@ env
 
 # Local Databases & Volatile Runtime Artifacts
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
+credence_core.db*
 ledger.db
 bank_system.db
 data/
@@ -36,6 +45,19 @@ Thumbs.db
 .idea
 *.swp
 
-# Markdown and Documentation Reports (preserve code and config only)
-# Keep REPOSITORY_AUDIT etc in repo, ignore in container image if needed or allow
+# Tests in Production Image
 tests/
+
+# Backups, Archives & Generated Artifacts
+*.bak
+*.pre_restore_bak
+db_rollback_backups/
+runtime_backups/
+dist/
+*.zip
+*.tar.gz
+*.log
+security.log
+bank_data.json
+user_profiles.json
+user_investments.json

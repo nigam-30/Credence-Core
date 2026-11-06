@@ -1,10 +1,43 @@
+# ══════════════════════════════════════════════════════════════
+# CREDENCE CORE — RENDER CLOUD BLUEPRINT SPECIFICATION
+# Note: Credence Core requires external PostgreSQL and Redis services.
+# ══════════════════════════════════════════════════════════════
+
 services:
   - type: web
     name: credence-core
     env: python
+    plan: standard
     buildCommand: "pip install -r requirements.txt && g++ main.cpp account.cpp credit.cpp debit.cpp fd.cpp loan.cpp report.cpp upi.cpp utils.cpp cheque.cpp globals.cpp -o bank_system"
+    preDeployCommand: "alembic upgrade head"
     startCommand: "gunicorn --config gunicorn_config.py 'backend.app:create_app()'"
     healthCheckPath: /health/live
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: credence-core-postgres
+          property: connectionString
+      - key: REDIS_URL
+        sync: false # Must be set in Render dashboard to an external Redis instance (e.g. Upstash or Redis Cloud)
+      - key: SECRET_KEY
+        generateValue: true
+      - key: MFA_ENCRYPTION_KEY
+        generateValue: true
+      - key: DATA_DIR
+        value: /var/data
+      - key: LOG_DIR
+        value: /var/logs
+    disk:
+      name: credence-core-disk
+      mountPath: /var/data
+      sizeGB: 10
+
+databases:
+  - name: credence-core-postgres
+    plan: standard
+    databaseName: credence_bank
+    user: credence_admin

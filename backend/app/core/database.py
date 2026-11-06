@@ -18,3 +18,6 @@ init_db = root_db.init_db
 drop_db = root_db.drop_db
 IS_POSTGRES = root_db.IS_POSTGRES
 get_db_url = root_db.get_db_url
+
+configure_engine = root_db.configure_engine
+validate_test_database_safety = getattr(root_db, 'validate_test_database_safety', None)

@@ -187,7 +187,7 @@ def mfa_confirm():
         user.mfa_recovery_codes = pending_codes
         user.mfa_enabled = True
         user.is_2fa_enabled = True
-        user.mfa_enrolled_at = datetime.datetime.utcnow()
+        user.mfa_enrolled_at = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
         db.commit()
 
     session.pop("pending_mfa_secret", None)
@@ -333,6 +333,23 @@ def update_limits_api():
     daily = req.get("daily_limit")
     per_txn = req.get("per_txn_limit")
     threshold = req.get("approval_threshold")
+
+    MAX_LIMIT = 50_000_000.0  # ₹5 Crore maximum configurable limit
+    try:
+        if daily is not None:
+            daily_val = float(daily)
+            if daily_val <= 0 or daily_val > MAX_LIMIT:
+                return jsonify({"success": False, "message": f"Daily limit must be between ₹1 and ₹{MAX_LIMIT:,.0f}."}), 400
+        if per_txn is not None:
+            per_txn_val = float(per_txn)
+            if per_txn_val <= 0 or per_txn_val > MAX_LIMIT:
+                return jsonify({"success": False, "message": f"Per-transaction limit must be between ₹1 and ₹{MAX_LIMIT:,.0f}."}), 400
+        if threshold is not None:
+            threshold_val = float(threshold)
+            if threshold_val <= 0 or threshold_val > MAX_LIMIT:
+                return jsonify({"success": False, "message": f"Approval threshold must be between ₹1 and ₹{MAX_LIMIT:,.0f}."}), 400
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "message": "Invalid numeric limit value."}), 400
 
     with get_db() as db:
         lim = db.query(TransactionLimit).filter(TransactionLimit.account_number == acc_no).first()

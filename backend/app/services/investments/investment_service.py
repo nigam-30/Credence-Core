@@ -129,6 +129,76 @@ class InvestmentService:
 
         return txn
 
+    def sell_gold(self, account_number: str, grams: float, actor: str, ip: str,
+                  idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Sell digital gold holdings and credit proceeds to account."""
+        acc_str = str(account_number).strip()
+        if grams <= 0:
+            raise ValueError("Gold grams must be greater than zero.")
+        if grams > 10000:
+            raise ValueError("Exceeds maximum allowable gold sale quantity.")
+
+        with get_db() as db:
+            acc = account_repository.get_by_number(db, acc_str)
+            if acc and acc.user and acc.user.role == "demo":
+                raise ValueError("Demo accounts are read-only and cannot sell investments.")
+
+            inv = db.query(Investment).filter(Investment.account_number == acc_str).first()
+            current_grams = float(inv.gold_grams or 0.0) if inv else 0.0
+            if current_grams < grams:
+                raise ValueError(f"Insufficient digital gold holdings. Available: {current_grams:.4f}g, requested: {grams:.4f}g.")
+
+        gold_rate = float(FinancialPolicy.get_gold_rate_rupees())
+        amount = round(grams * gold_rate, 2)
+
+        txn = ledger_service.execute(
+            transaction_type="DIGITAL_GOLD_SALE",
+            amount_rupees=amount,
+            source_account=GL_GOLD_VAULT_CLEARING,
+            destination_account=acc_str,
+            description=f"24K Digital Gold Sale ({grams:.4f}g @ ₹{gold_rate:,.2f}/g)",
+            idempotency_key=idempotency_key,
+            actor=actor,
+            ip=ip,
+            metadata={"grams": grams, "rate": gold_rate}
+        )
+
+        with get_db() as db:
+            inv = db.query(Investment).filter(Investment.account_number == acc_str).first()
+            if inv:
+                old_grams = float(inv.gold_grams)
+                inv.gold_grams = max(0.0, old_grams - grams)
+                if old_grams > 0:
+                    fraction = min(1.0, grams / old_grams)
+                    inv.gold_total_invested_paise = max(0, int(inv.gold_total_invested_paise * (1.0 - fraction)))
+                db.commit()
+
+        return {"txn": txn, "grams": grams, "rate": gold_rate, "amount": amount}
+
+    def update_sip_status(self, account_number: str, sip_id: str, action: str) -> Dict[str, Any]:
+        """Update status of a SIP (pause, resume, cancel/redeem)."""
+        acc_str = str(account_number).strip()
+        action_map = {
+            "pause": "Paused",
+            "resume": "Active",
+            "cancel": "Redeemed",
+            "redeem": "Redeemed",
+        }
+        target_status = action_map.get(str(action).lower())
+        if not target_status:
+            raise ValueError(f"Invalid SIP action '{action}'. Permitted actions: pause, resume, cancel.")
+
+        with get_db() as db:
+            sip = db.query(SIP).filter(SIP.sip_id == sip_id).first()
+            if not sip:
+                raise ValueError(f"SIP with ID '{sip_id}' not found.")
+            if sip.account_number != acc_str:
+                raise PermissionError("Access denied: You do not own this SIP.")
+
+            sip.status = target_status
+            db.commit()
+            return {"sip_id": sip_id, "status": target_status}
+
     def create_sip(self, account_number: str, fund_id: str, fund_name: str, category: str,
                    monthly_amount: float, sip_day: int, actor: str, ip: str,
                    idempotency_key: Optional[str] = None) -> Dict[str, Any]:

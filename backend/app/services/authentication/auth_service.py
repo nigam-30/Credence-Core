@@ -7,6 +7,7 @@ server-side revocation on logout, MFA challenge verification, and restricted dem
 import time
 import secrets
 import hashlib
+import hmac
 import datetime
 import json
 from typing import Dict, Any, Optional, Tuple
@@ -52,7 +53,7 @@ def create_server_session(db, user, account_number: str, role: str, is_demo: boo
     token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
     csrf_token = secrets.token_hex(32)
 
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     expires_at = now + datetime.timedelta(minutes=30)
 
     # Ensure role is safe (demo can never be admin)
@@ -98,7 +99,7 @@ def generate_mfa_ticket(user_id: int, account_number: str) -> str:
     """Generate a tamper-evident temporary MFA challenge ticket."""
     ts = int(time.time())
     payload = f"{user_id}:{account_number}:{ts}"
-    sig = hashlib.sha256(f"{payload}:{Config.SECRET_KEY}".encode("utf-8")).hexdigest()
+    sig = hmac.new(Config.SECRET_KEY.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
     return f"{payload}:{sig}"
 
 
@@ -110,7 +111,7 @@ def verify_mfa_ticket(ticket: str) -> Optional[Tuple[int, str]]:
             return None
         u_id_str, acc_no, ts_str, sig = parts
         payload = f"{u_id_str}:{acc_no}:{ts_str}"
-        expected_sig = hashlib.sha256(f"{payload}:{Config.SECRET_KEY}".encode("utf-8")).hexdigest()
+        expected_sig = hmac.new(Config.SECRET_KEY.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
         if not secrets.compare_digest(sig, expected_sig):
             return None
         ts = int(ts_str)

@@ -38,8 +38,9 @@ def apply_loan_api():
     amount_val = float(dec_amt)
     idem_key = req.get("idempotency_key") or request.headers.get("Idempotency-Key")
 
+    target_acc = req_acc if session.get("role") == "admin" else auth_user
     txn = loan_service.apply_loan(
-        account_number=auth_user,
+        account_number=target_acc,
         amount=amount_val,
         loan_type=loan_type,
         actor=auth_user,
@@ -78,8 +79,9 @@ def repay_loan_api():
     amount_val = float(dec_amt)
     idem_key = req.get("idempotency_key") or request.headers.get("Idempotency-Key")
 
+    target_acc = req_acc if session.get("role") == "admin" else auth_user
     txn = loan_service.repay_loan(
-        account_number=auth_user,
+        account_number=target_acc,
         amount=amount_val,
         actor=auth_user,
         ip=request.remote_addr or "127.0.0.1",

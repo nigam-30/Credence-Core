@@ -56,6 +56,45 @@ class TransferService:
 
         return txn
 
+    def process_withdrawal(self, account_number: str, amount: float, actor: str, ip: str,
+                           idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """Withdraw cash from an account to GL_CASH_VAULT."""
+        acc_str = str(account_number).strip()
+
+        with get_db() as db:
+            acc = account_repository.get_by_number(db, acc_str)
+            if acc and acc.user and acc.user.role == "demo":
+                return {
+                    "success": False,
+                    "message": "Demo accounts are read-only and cannot execute withdrawals.",
+                    "status_code": 403
+                }
+
+        txn = ledger_service.execute(
+            transaction_type="WITHDRAWAL",
+            amount_rupees=amount,
+            source_account=acc_str,
+            destination_account=GL_CASH_VAULT,
+            description=f"Account Withdrawal ₹{amount:,.2f}",
+            idempotency_key=idempotency_key,
+            actor=actor,
+            ip=ip,
+            metadata={"channel": "ATM_OR_BRANCH", "method": "CASH_WITHDRAWAL"}
+        )
+
+        if txn.get("success"):
+            try:
+                notification_service.send_notification(
+                    account_number=acc_str,
+                    title="Withdrawal Debited",
+                    message=f"Debited ₹{amount:,.2f} via Cash Withdrawal. Ref: {txn.get('reference_id')}",
+                    notification_type="TRANSACTION"
+                )
+            except Exception:
+                pass
+
+        return txn
+
     def process_transfer(self, from_acc: str, to_acc: str, amount: float, method: str,
                          description: str, actor: str, ip: str,
                          idempotency_key: Optional[str] = None) -> Dict[str, Any]:

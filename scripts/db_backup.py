@@ -106,8 +106,11 @@ def run_backup(target_dir: str = None, retention_days: int = 7) -> str:
         manifest["artifacts"]["primary_postgres"] = res_pg
         print(f"  [+] PostgreSQL Primary DB: {res_pg['status']}")
     else:
-        # SQLite primary database (credence_core.db)
-        app_db = os.path.join(Config.BASE_DIR, "credence_core.db")
+        # SQLite primary database (dynamically honor active DATABASE_URL)
+        if db_url.startswith("sqlite:///"):
+            app_db = db_url.replace("sqlite:///", "")
+        else:
+            app_db = os.path.join(Config.BASE_DIR, "credence_core.db")
         dest_app = os.path.join(dest_dir, "credence_core.db")
         res_app = backup_sqlite(app_db, dest_app)
         manifest["artifacts"]["primary_sqlite"] = res_app

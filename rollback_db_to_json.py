@@ -46,7 +46,7 @@ BACKUP_DIR = os.path.join(BASE_DIR, "db_rollback_backups")
 def export_database_to_json_backup() -> str:
     """Exports current database tables to JSON backup files for safety."""
     os.makedirs(BACKUP_DIR, exist_ok=True)
-    ts = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
     sub_dir = os.path.join(BACKUP_DIR, f"backup_{ts}")
     os.makedirs(sub_dir, exist_ok=True)
 

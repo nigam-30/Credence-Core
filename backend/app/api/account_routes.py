@@ -21,9 +21,18 @@ def create_account_api():
     name = (req.get("name") or "").strip()
     deposit_raw = req.get("deposit", 0.0)
     debit_opt = req.get("debit", "n")
-    pin = req.get("pin")
-    upi_pin = req.get("upi_pin")
-    pwd = req.get("password")
+
+    try:
+        deposit = float(deposit_raw)
+        if deposit < 0:
+            return jsonify({"success": False, "message": "Initial deposit cannot be negative."}), 400
+        if deposit > 10_000_000.0:
+            return jsonify({"success": False, "message": "Initial deposit exceeds maximum allowed limit (₹1,00,00,000)."}), 400
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "message": "Invalid initial deposit amount."}), 400
+    pin = req.get("pin") or "1234"
+    upi_pin = req.get("upi_pin") or "123456"
+    pwd = req.get("password") or "Credence2026!"
     email = req.get("email")
     pan = req.get("pan")
 
@@ -55,17 +64,22 @@ def create_account_api():
         except ValidationError:
             return jsonify({"success": False, "message": "UPI PIN must be 4 or 6 digits."}), 400
 
-    res = account_service.create_account(
-        name=name,
-        deposit=deposit,
-        debit_opt=debit_opt,
-        pin=pin,
-        upi_pin=upi_pin,
-        password=pwd,
-        email=email,
-        pan=pan
-    )
-    return jsonify(res)
+    try:
+        res = account_service.create_account(
+            name=name,
+            deposit=deposit,
+            debit_opt=debit_opt,
+            pin=pin,
+            upi_pin=upi_pin,
+            password=pwd,
+            email=email,
+            pan=pan
+        )
+        return jsonify(res)
+    except ValidationError as ve:
+        return jsonify({"success": False, "message": str(ve)}), 400
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Account creation failed: {str(e)}"}), 500
 
 
 @account_bp.route("/api/account/<acc_no>", methods=["GET"])

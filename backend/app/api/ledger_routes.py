@@ -13,6 +13,7 @@ ledger_bp = Blueprint("ledger_bp", __name__)
 
 @ledger_bp.route("/api/ledger/reverse", methods=["POST"])
 @login_required
+@require_role("admin")
 def reverse_transaction_api():
     csrf_err = verify_csrf_request()
     if csrf_err:
@@ -25,13 +26,16 @@ def reverse_transaction_api():
     if not ref_id:
         return jsonify({"success": False, "message": "Reference ID is required."}), 400
 
-    result = ledger_service.reverse(
-        reference_id=ref_id,
-        reason=reason,
-        actor=session.get("user_id") or "SYSTEM",
-        ip=request.remote_addr or "127.0.0.1"
-    )
-    return jsonify(result)
+    try:
+        result = ledger_service.reverse(
+            reference_id=ref_id,
+            reason=reason,
+            actor=session.get("user_id") or "SYSTEM",
+            ip=request.remote_addr or "127.0.0.1"
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 400
 
 
 @ledger_bp.route("/api/ledger/reconcile", methods=["GET"])

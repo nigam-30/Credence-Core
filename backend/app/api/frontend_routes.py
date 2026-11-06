@@ -37,8 +37,27 @@ def index():
 
 @frontend_bp.route("/dashboard")
 def dashboard():
-    if not session.get("user_id"):
+    token = request.cookies.get("session_token") or session.get("session_token")
+    if not token:
+        session.clear()
         return redirect("/?auth_required=true")
+
+    try:
+        from database import get_db
+        from models import SessionRecord
+        import hashlib, datetime
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        with get_db() as db:
+            s_rec = db.query(SessionRecord).filter(
+                (SessionRecord.session_token_hash == token_hash) | (SessionRecord.session_id == token)
+            ).first()
+            now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+            if not s_rec or not s_rec.is_active or s_rec.expires_at <= now:
+                session.clear()
+                return redirect("/?auth_required=true")
+    except Exception:
+        pass
+
     return send_ui_file("code(1).html")
 
 

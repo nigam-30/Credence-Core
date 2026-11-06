@@ -65,6 +65,53 @@ def deposit():
     })
 
 
+@transfer_bp.route("/api/withdraw", methods=["POST"])
+@login_required
+def withdraw():
+    csrf_err = verify_csrf_request()
+    if csrf_err:
+        return csrf_err
+
+    auth_user = session.get("user_id")
+    req = request.get_json(silent=True) or {}
+    raw_amt = req.get("amount", "0")
+
+    try:
+        dec_amt = validate_amount(raw_amt)
+    except ValidationError as ve:
+        return jsonify({"success": False, "message": str(ve)}), 400
+
+    amount_val = float(dec_amt)
+    idem_key = req.get("idempotency_key") or request.headers.get("Idempotency-Key")
+
+    txn = transfer_service.process_withdrawal(
+        account_number=auth_user,
+        amount=amount_val,
+        actor=auth_user,
+        ip=request.remote_addr or "127.0.0.1",
+        idempotency_key=idem_key
+    )
+
+    if not txn.get("success"):
+        return jsonify({
+            "success": False,
+            "result": txn.get("message", "Withdrawal failed"),
+            "message": txn.get("message", "Withdrawal failed")
+        }), txn.get("status_code", 400)
+
+    bal = txn.get("source_balance_rupees", 0.0)
+    log_sensitive_operation(auth_user, "withdrawal", amount_val, request.remote_addr or "127.0.0.1")
+
+    return jsonify({
+        "success": True,
+        "reference_id": txn.get("reference_id"),
+        "state": txn.get("state"),
+        "amount": amount_val,
+        "balance": bal,
+        "message": f"Successfully withdrew ₹{amount_val:,.2f} from Account #{auth_user}!"
+    })
+
+
 @transfer_bp.route("/api/transfer", methods=["POST"])
 @login_required
 def transfer():

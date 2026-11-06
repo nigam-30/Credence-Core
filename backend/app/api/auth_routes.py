@@ -55,6 +55,10 @@ def login():
         }), 200
 
     if res["success"]:
+        session["user_id"] = res["user"]["account_number"]
+        session["role"] = res["user"].get("role", "user")
+        session["session_token"] = res["session_token"]
+        session["csrf_token"] = res["csrf_token"]
         payload = {
             "success": True,
             "account": res["user"]["account_number"],
@@ -104,7 +108,7 @@ def verify_mfa():
 
 @auth_bp.route("/api/demo_login", methods=["POST"])
 def demo_login():
-    if not Config.CONFIGURED_DEMO_ACCOUNTS:
+    if not Config.CONFIGURED_DEMO_ACCOUNTS or os.environ.get('FLASK_ENV', '').lower() == 'production' or os.environ.get('ENV', '').lower() == 'production':
         return jsonify({
             "success": False,
             "message": "Demo login is disabled: no demo accounts are provisioned in this environment."

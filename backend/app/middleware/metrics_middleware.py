@@ -37,6 +37,8 @@ def record_request_end(response):
 
     # Add custom trace header
     response.headers["X-Response-Time-Ms"] = f"{duration_ms:.2f}"
+    from backend.app.core.logging import get_request_id
+    response.headers["X-Request-ID"] = get_request_id()
 
     status = response.status_code
     with _metrics_lock:

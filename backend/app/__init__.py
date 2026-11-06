@@ -3,6 +3,8 @@ Credence Core — Application Factory
 Initializes modular Flask application, database bindings, security middleware, and routes.
 """
 
+__version__ = "1.0.0"
+
 import os
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix

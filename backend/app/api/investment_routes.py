@@ -71,7 +71,7 @@ def create_sip_api():
     sip_day = int(req.get("sip_day", 5))
 
     try:
-        dec_amt = validate_amount(req.get("monthly_amount", "1000"), min_amount=500.0)
+        dec_amt = validate_amount(req.get("monthly_amount") or req.get("amount") or "1000", min_amount=500.0)
     except ValidationError as ve:
         return jsonify({"success": False, "message": str(ve)}), 400
 
@@ -273,24 +273,32 @@ def gold_sell_api():
 
     auth_user = session.get("user_id")
     req = request.get_json(silent=True) or {}
-    grams = float(req.get("grams", 0.0))
-    rate = 7620.50
-    amount = grams * rate
+    try:
+        grams = float(req.get("grams", 0.0))
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "message": "Invalid gold grams quantity."}), 400
 
-    txn = ledger_service.execute(
-        transaction_type="DIGITAL_GOLD_SALE",
-        amount_rupees=amount,
-        source_account=GL_GOLD_VAULT_CLEARING,
-        destination_account=auth_user,
-        description=f"24K Digital Gold Sale ({grams}g @ ₹{rate:,.2f}/g)",
-        actor=auth_user,
-        ip=request.remote_addr or "127.0.0.1"
-    )
+    idem_key = req.get("idempotency_key") or request.headers.get("Idempotency-Key")
 
-    return jsonify({
-        "success": True,
-        "message": f"Sold {grams}g digital gold for ₹{amount:,.2f}. Proceeds credited to your account."
-    })
+    try:
+        res = investment_service.sell_gold(
+            account_number=auth_user,
+            grams=grams,
+            actor=auth_user,
+            ip=request.remote_addr or "127.0.0.1",
+            idempotency_key=idem_key
+        )
+        return jsonify({
+            "success": True,
+            "message": f"Sold {res['grams']:.4f}g digital gold for ₹{res['amount']:,.2f}. Proceeds credited to your account.",
+            "reference_id": res["txn"].get("reference_id"),
+            "amount": res["amount"],
+            "grams": res["grams"]
+        })
+    except ValueError as ve:
+        return jsonify({"success": False, "message": str(ve)}), 400
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Gold sale failed: {str(e)}"}), 500
 
 
 @investment_bp.route("/api/invest/sip_action", methods=["POST"])
@@ -300,7 +308,29 @@ def sip_action_api():
     if csrf_err:
         return csrf_err
 
+    auth_user = session.get("user_id")
     req = request.get_json(silent=True) or {}
-    action = req.get("action", "pause")
-    sip_id = req.get("sip_id")
-    return jsonify({"success": True, "message": f"SIP {sip_id} {action}d successfully."})
+    action = sanitize_text(str(req.get("action", "pause")).strip())
+    sip_id = sanitize_text(str(req.get("sip_id", "")).strip())
+
+    if not sip_id:
+        return jsonify({"success": False, "message": "SIP ID is required."}), 400
+
+    try:
+        res = investment_service.update_sip_status(
+            account_number=auth_user,
+            sip_id=sip_id,
+            action=action
+        )
+        return jsonify({
+            "success": True,
+            "sip_id": res["sip_id"],
+            "status": res["status"],
+            "message": f"SIP {res['sip_id']} status updated to {res['status']} successfully."
+        })
+    except PermissionError as pe:
+        return jsonify({"success": False, "message": str(pe)}), 403
+    except ValueError as ve:
+        return jsonify({"success": False, "message": str(ve)}), 400
+    except Exception as e:
+        return jsonify({"success": False, "message": f"SIP action failed: {str(e)}"}), 500

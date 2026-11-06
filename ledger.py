@@ -491,7 +491,7 @@ class FinancialIntegrityEngine:
                 cred_bal = balance_records[dst_str].balance_paise
 
                 # 5. PERSIST TRANSACTION AND LEDGER ENTRIES TOGETHER
-                now_utc = datetime.datetime.utcnow()
+                now_utc = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
                 txn = Transaction(
                     reference_id=ref_id,
                     idempotency_key=idempotency_key,
@@ -647,7 +647,7 @@ class FinancialIntegrityEngine:
                         )
 
                 rev_ref = generate_reference_id("REV")
-                now_utc = datetime.datetime.utcnow()
+                now_utc = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
 
                 # Deduct from reversal source, credit to reversal destination
                 rev_src_acc = db.query(Account).filter(Account.account_number == reversal_src).first()
@@ -817,7 +817,7 @@ class FinancialIntegrityEngine:
                     actor="SYSTEM",
                     ip_address="127.0.0.1",
                     details_json=json.dumps({"is_healthy": is_healthy, "discrepancy_paise": discrepancy}),
-                    timestamp=datetime.datetime.utcnow()
+                    timestamp=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
                 )
                 db.add(audit_tr)
 

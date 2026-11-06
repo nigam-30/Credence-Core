@@ -44,7 +44,7 @@ This report documents the verification across Credence Core following the Phase 
 
 ## 3. Phase 6.1 Dedicated Security & Remediation Test Suite
 
-The new test suite [`tests/test_phase6_1_remediation.py`](file:///d:/bank_system_clean/tests/test_phase6_1_remediation.py) exercises genuine production HTTP flows (issuing real `POST /api/login` requests, receiving server-issued `session_token` and `csrf_token` headers, and presenting them on subsequent requests):
+The new test suite [`tests/test_phase6_1_remediation.py`](tests/test_phase6_1_remediation.py) exercises genuine production HTTP flows (issuing real `POST /api/login` requests, receiving server-issued `session_token` and `csrf_token` headers, and presenting them on subsequent requests):
 
 | # | Test Case | Production Behavior Verified | Result |
 | :---: | :--- | :--- | :---: |

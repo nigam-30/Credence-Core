@@ -16,7 +16,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-credence_bank}
       POSTGRES_USER: ${POSTGRES_USER:-credence_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be explicitly provided in production}
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be explicitly provided in production}"
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -81,9 +81,9 @@ services:
         condition: service_healthy
     environment:
       FLASK_ENV: ${FLASK_ENV:-production}
-      SECRET_KEY: ${SECRET_KEY:?Error: SECRET_KEY must be configured with >=32 characters}
-      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Error: MFA_ENCRYPTION_KEY must be configured}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-credence_admin}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be configured}@db:5432/${POSTGRES_DB:-credence_bank}
+      SECRET_KEY: "${SECRET_KEY:?Error: SECRET_KEY must be configured with >=32 characters}"
+      MFA_ENCRYPTION_KEY: "${MFA_ENCRYPTION_KEY:?Error: MFA_ENCRYPTION_KEY must be configured}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-credence_admin}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be configured}@db:5432/${POSTGRES_DB:-credence_bank}"
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       DATA_DIR: /app/data
       LOG_DIR: /app/logs

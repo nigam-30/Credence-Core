@@ -11,7 +11,8 @@ import logging
 # ══════════════════════════════════════════════════════════════
 # SERVER SOCKET & BINDING
 # ══════════════════════════════════════════════════════════════
-bind = os.environ.get("GUNICORN_BIND", "0.0.0.0:5000")
+port = os.environ.get("PORT", "").strip()
+bind = f"0.0.0.0:{port}" if port else os.environ.get("GUNICORN_BIND", "0.0.0.0:5000")
 backlog = int(os.environ.get("GUNICORN_BACKLOG", 2048))
 
 # ══════════════════════════════════════════════════════════════

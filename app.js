@@ -14,13 +14,42 @@ function escapeHtml(str) {
 }
 window.escapeHtml = escapeHtml;
 
-// Global Fetch Interceptor for central session expiration and CSRF management
+// Centralized CSRF Token Resolver
+function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+    if (match) return decodeURIComponent(match[1]);
+    return sessionStorage.getItem('csrf_token') || '';
+}
+window.getCsrfToken = getCsrfToken;
+
+// Global Fetch Interceptor for automatic CSRF injection and centralized session expiration handling
 const _originalFetch = window.fetch;
-window.fetch = async function(...args) {
-    const response = await _originalFetch.apply(this, args);
+window.fetch = async function(resource, init) {
+    init = init || {};
+    const method = (init.method || 'GET').toUpperCase();
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+        init.headers = init.headers || {};
+        const csrfToken = getCsrfToken();
+        if (csrfToken) {
+            if (init.headers instanceof Headers) {
+                if (!init.headers.has('X-CSRF-Token')) {
+                    init.headers.set('X-CSRF-Token', csrfToken);
+                }
+            } else if (Array.isArray(init.headers)) {
+                if (!init.headers.some(([k]) => k.toLowerCase() === 'x-csrf-token')) {
+                    init.headers.push(['X-CSRF-Token', csrfToken]);
+                }
+            } else {
+                if (!init.headers['X-CSRF-Token'] && !init.headers['x-csrf-token']) {
+                    init.headers['X-CSRF-Token'] = csrfToken;
+                }
+            }
+        }
+    }
+    const response = await _originalFetch.apply(this, [resource, init]);
     if (response.status === 401) {
-        const url = String(args[0] || '');
-        if (!url.includes('/api/login') && !url.includes('/api/mfa/verify') && !url.includes('/api/demo_login') && !url.includes('/api/account/verify_pin')) {
+        const url = String(resource || '');
+        if (!url.includes('/api/login') && !url.includes('/api/mfa/verify') && !url.includes('/api/demo_login') && !url.includes('/api/account/verify_pin') && !url.includes('/api/demo_info')) {
             showToast('Your session has expired. Please sign in again.', 'error');
             sessionStorage.clear();
             setTimeout(() => {
@@ -1746,6 +1775,7 @@ window.handleCreateSIP = async (e) => {
                 fund_id: fundId,
                 type: investType,
                 sip_day: sipDay,
+                monthly_amount: amount,
                 amount: amount
             })
         });
@@ -2297,11 +2327,11 @@ window.handleGoldSell = async (e) => {
 window.handleSellGold = window.handleGoldSell;
 
 // ════════════ HANDLERS: SEND & PAY TAB ════════════
-window.handleSendMoney = async (e) => {
+window.handleDirectTransfer = async (e) => {
     e.preventDefault();
-    const toAcc = document.getElementById('transfer-tab-recipient').value.trim();
-    const amount = document.getElementById('transfer-tab-amount').value.trim();
-    const method = document.getElementById('transfer-tab-method').value;
+    const toAcc = (document.getElementById('transfer-to-acc')?.value || document.getElementById('transfer-tab-recipient')?.value || '').trim();
+    const amount = (document.getElementById('transfer-amount')?.value || document.getElementById('transfer-tab-amount')?.value || '').trim();
+    const method = (document.getElementById('transfer-method')?.value || document.getElementById('transfer-tab-method')?.value || 'IMPS');
     const currentAcc = sessionStorage.getItem('current_account') || currentAccountData?.account_number;
 
     if (!toAcc || !amount || parseFloat(amount) <= 0) {
@@ -2322,8 +2352,10 @@ window.handleSendMoney = async (e) => {
         const d = await res.json();
         if (d.success) {
             showToast(`Successfully sent ₹${amount} to Account #${toAcc}!`);
-            document.getElementById('transfer-tab-recipient').value = '';
-            document.getElementById('transfer-tab-amount').value = '';
+            const r1 = document.getElementById('transfer-to-acc'); if (r1) r1.value = '';
+            const r2 = document.getElementById('transfer-tab-recipient'); if (r2) r2.value = '';
+            const a1 = document.getElementById('transfer-amount'); if (a1) a1.value = '';
+            const a2 = document.getElementById('transfer-tab-amount'); if (a2) a2.value = '';
             syncAccountData();
         } else {
             showToast(d.result || d.message || 'Transfer failed.', 'error');
@@ -2332,6 +2364,7 @@ window.handleSendMoney = async (e) => {
         showToast('Transfer request failed.', 'error');
     }
 };
+window.handleSendMoney = window.handleDirectTransfer;
 
 window.toggleCustomBiller = (val) => {
     const wrap = document.getElementById('bill-custom-wrapper');
@@ -2799,6 +2832,48 @@ window.downloadStatementPDF = async () => {
 
 // ════════════ QUICK MODALS (Dashboard triggers) ════════════
 window.openTransferModal = () => switchTab('transfer');
+
+window.openWithdrawModal = () => {
+    openModal({
+        title: 'Withdraw Funds from Account',
+        description: 'Simulate instant cash / ATM debit from core account',
+        contentHtml: `
+            <div>
+                <label class="block text-slate-700 font-bold mb-1 text-xs">Withdrawal Amount (₹)</label>
+                <input id="withdraw-amount" type="number" min="10" placeholder="e.g. 2000" class="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            </div>
+            <div class="p-3 bg-rose-50 rounded-2xl text-[11px] text-rose-800 font-medium">
+                Instant withdrawal debit via core banking ledger.
+            </div>
+        `,
+        submitText: 'Withdraw Funds',
+        onConfirm: async (modal, close) => {
+            const amount = modal.querySelector('#withdraw-amount').value.trim();
+            if (!amount || parseFloat(amount) <= 0) {
+                showToast('Please enter a valid positive withdrawal amount.', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/api/withdraw', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: parseFloat(amount) })
+                });
+                const d = await res.json();
+                close();
+                if (d.success) {
+                    showToast(`Successfully withdrew ₹${amount}!`);
+                    syncAccountData();
+                } else {
+                    showToast(d.message || 'Withdrawal failed.', 'error');
+                }
+            } catch (e) {
+                showToast('Withdrawal failed.', 'error');
+            }
+        }
+    });
+};
+
 window.openDepositModal = () => {
     openModal({
         title: 'Add Funds to Account',
@@ -2821,15 +2896,19 @@ window.openDepositModal = () => {
                 return;
             }
             try {
-                const res = await fetch('/api/execute', {
+                const res = await fetch('/api/deposit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ choice: 1, inputs: [currentAcc, amount] })
+                    body: JSON.stringify({ amount: parseFloat(amount) })
                 });
                 const d = await res.json();
                 close();
-                showToast(`Deposited ₹${amount} into Account #${currentAcc}!`);
-                syncAccountData();
+                if (d.success) {
+                    showToast(`Successfully deposited ₹${parseFloat(amount).toLocaleString('en-IN')}!`);
+                    syncAccountData();
+                } else {
+                    showToast(d.message || 'Deposit failed.', 'error');
+                }
             } catch (e) {
                 showToast('Deposit failed.', 'error');
             }
@@ -2862,8 +2941,12 @@ window.openCreateAccountModal = () => {
                 <input id="new-acc-deposit" type="number" min="500" placeholder="e.g. 5000" class="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900" />
             </div>
             <div>
-                <label class="block text-slate-700 font-bold mb-1 text-xs">Set 4-Digit Password / PIN</label>
-                <input id="new-acc-pin" type="password" maxlength="6" placeholder="4-6 digit PIN" class="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900" />
+                <label class="block text-slate-700 font-bold mb-1 text-xs">Netbanking Password</label>
+                <input id="new-acc-password" type="password" placeholder="Min 8 chars, letters & digits (Default: Credence2026!)" class="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900" />
+            </div>
+            <div>
+                <label class="block text-slate-700 font-bold mb-1 text-xs">Set 4-Digit Security PIN</label>
+                <input id="new-acc-pin" type="password" maxlength="6" placeholder="4-digit PIN (Default: 1234)" class="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900" />
             </div>
         `,
         submitText: 'Create Account',
@@ -2872,7 +2955,8 @@ window.openCreateAccountModal = () => {
             const name = modal.querySelector('#new-acc-name').value.trim();
             const email = modal.querySelector('#new-acc-email').value.trim();
             const deposit = modal.querySelector('#new-acc-deposit').value.trim();
-            const pin = modal.querySelector('#new-acc-pin').value.trim();
+            const password = modal.querySelector('#new-acc-password')?.value.trim() || 'Credence2026!';
+            const pin = modal.querySelector('#new-acc-pin')?.value.trim() || '1234';
 
             if (!name || !email || !deposit) {
                 showToast('Please fill all required account opening fields.', 'error');
@@ -2887,6 +2971,7 @@ window.openCreateAccountModal = () => {
                         name,
                         email,
                         deposit,
+                        password: password,
                         pin: pin,
                         address: 'Digital Banking User',
                         dob: '1995-05-15',
@@ -2898,8 +2983,9 @@ window.openCreateAccountModal = () => {
                 close();
                 if (d.account_number) {
                     sessionStorage.setItem('current_account', d.account_number);
-                    showToast(`${accType} #${d.account_number} opened successfully!`);
-                    setTimeout(() => window.location.href = '/dashboard', 1200);
+                    showToast(`${accType} #${d.account_number} opened successfully! Please sign in.`);
+                    const accInput = document.getElementById('login-acc-no');
+                    if (accInput) accInput.value = d.account_number;
                 } else {
                     showToast(d.message || 'Error opening account.', 'error');
                 }
@@ -2946,9 +3032,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const isAuthPage = window.location.pathname === '/' || window.location.pathname.endsWith('code.html');
 
     if (isAuthPage) {
-        // Handle Login Form
+        // Handle Login Form (only if not already handled by inline handler)
         const loginForm = document.querySelector('form');
-        if (loginForm) {
+        if (loginForm && !window.handleLoginSubmit && !loginForm.getAttribute('onsubmit')) {
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const inputs = loginForm.querySelectorAll('input');

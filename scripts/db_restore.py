@@ -143,7 +143,11 @@ def run_restore(backup_dir: str) -> bool:
     # 2. Restore Primary DB
     src_sqlite = os.path.join(backup_dir, "credence_core.db")
     if os.path.exists(src_sqlite):
-        target_sqlite = os.path.join(Config.BASE_DIR, "credence_core.db")
+        db_url = Config.DATABASE_URL or ""
+        if db_url.startswith("sqlite:///"):
+            target_sqlite = db_url.replace("sqlite:///", "")
+        else:
+            target_sqlite = os.path.join(Config.BASE_DIR, "credence_core.db")
         if not restore_sqlite(src_sqlite, target_sqlite):
             return False
 

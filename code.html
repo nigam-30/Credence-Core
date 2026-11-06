@@ -174,7 +174,7 @@
                             <span class="material-symbols-outlined text-emerald-600 text-base">key</span>
                             <div class="truncate">
                                 <span class="font-bold text-slate-900">Demo User:</span>
-                                <span id="demo-account-display" class="font-mono text-slate-600">Demo Sandbox</span>
+                                <span id="demo-account-display" class="font-mono text-slate-600">40273146502136</span>
                             </div>
                         </div>
                         <button onclick="handleQuickDemoLogin()" class="px-2.5 py-1 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-bold text-[11px] transition-colors shrink-0">
@@ -206,6 +206,8 @@
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">lock</span>
                             </div>
                         </div>
+
+                        <div id="login-error-msg" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold"></div>
 
                         <button type="submit" id="btn-login-submit"
                             class="w-full h-12 bg-slate-950 hover:bg-slate-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]">
@@ -268,20 +270,10 @@
         document.addEventListener('DOMContentLoaded', fetchDemoAccount);
 
         async function handleQuickDemoLogin() {
-            let demoAcc = window._demoAccountNumber;
-            if (!demoAcc) {
-                try {
-                    const res = await fetch('/api/demo_info');
-                    if (res.ok) {
-                        const data = await res.json();
-                        demoAcc = data.account_number;
-                        window._demoAccountNumber = demoAcc;
-                    }
-                } catch(e) {}
-            }
+            let demoAcc = window._demoAccountNumber || '40273146502136';
             const accInput = document.getElementById('login-acc-no');
             const passInput = document.getElementById('login-password');
-            if (accInput && demoAcc) accInput.value = demoAcc;
+            if (accInput) accInput.value = demoAcc;
             if (passInput) passInput.value = 'admin123';
             const btn = document.getElementById('btn-login-submit');
             if (btn) btn.click();
@@ -292,9 +284,14 @@
             const acc = document.getElementById('login-acc-no').value.trim();
             const password = document.getElementById('login-password').value.trim();
             const btn = document.getElementById('btn-login-submit');
+            const errDiv = document.getElementById('login-error-msg');
+            if (errDiv) errDiv.classList.add('hidden');
 
             if (!acc) {
-                alert('Please enter an account number.');
+                if (errDiv) {
+                    errDiv.textContent = 'Please enter an account number.';
+                    errDiv.classList.remove('hidden');
+                }
                 return;
             }
 
@@ -310,13 +307,25 @@
                 const data = await res.json();
                 if (data.success) {
                     sessionStorage.setItem('current_account', acc);
+                    if (data.csrf_token) sessionStorage.setItem('csrf_token', data.csrf_token);
                     window.location.href = '/dashboard';
                 } else {
-                    alert(data.message || 'Login failed. Please check credentials.');
+                    const msg = data.message || 'Login failed. Please check credentials.';
+                    if (errDiv) {
+                        errDiv.textContent = msg;
+                        errDiv.classList.remove('hidden');
+                    } else if (typeof showToast === 'function') {
+                        showToast(msg, 'error');
+                    } else {
+                        alert(msg);
+                    }
                 }
             } catch (err) {
                 console.error(err);
-                alert('Connection error. Ensure backend server is running.');
+                if (errDiv) {
+                    errDiv.textContent = 'Connection error. Ensure backend server is running.';
+                    errDiv.classList.remove('hidden');
+                }
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<span>Enter Banking Portal</span><span class="material-symbols-outlined text-base">arrow_forward</span>`;

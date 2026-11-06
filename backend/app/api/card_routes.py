@@ -28,7 +28,8 @@ def block_card_api():
     if req_acc != auth_user and session.get("role") != "admin":
         return jsonify({"success": False, "message": "Unauthorized account."}), 403
 
-    success = card_service.block_debit_card(auth_user)
+    target_acc = req_acc if session.get("role") == "admin" else auth_user
+    success = card_service.block_debit_card(target_acc)
     if success:
         return jsonify({"success": True, "message": "Debit card securely blocked."})
     return jsonify({"success": False, "message": "No active debit card found."}), 400
