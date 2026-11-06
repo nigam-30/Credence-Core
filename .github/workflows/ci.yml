@@ -144,7 +144,17 @@ jobs:
           TEST_DATABASE_URL: postgresql://postgres:test_password_123@127.0.0.1:5432/credence_test
         run: |
           echo "Running database schema initialization and Alembic migrations..."
-          python -m alembic upgrade head
+          python -m alembic upgrade head || (echo "ALEMBIC UPGRADE FAILED - TRACING ERROR:" && python -c "
+          import traceback, sys
+          from alembic.config import Config
+          from alembic import command
+          cfg = Config('alembic.ini')
+          try:
+              command.upgrade(cfg, 'head')
+          except Exception as e:
+              traceback.print_exc()
+              sys.exit(1)
+          ")
 
       - name: Execute Full Automated Test Suite (Pytest)
         env:

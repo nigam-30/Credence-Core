@@ -121,9 +121,9 @@ def upgrade() -> None:
     # Safe backfill for populated databases to ensure zero null or empty values
     bind = op.get_bind()
     bind.execute(sa.text("UPDATE sessions SET role = 'user' WHERE role IS NULL OR role = ''"))
-    bind.execute(sa.text("UPDATE sessions SET is_demo = 0 WHERE is_demo IS NULL"))
+    bind.execute(sa.text("UPDATE sessions SET is_demo = false WHERE is_demo IS NULL"))
     bind.execute(sa.text("UPDATE sessions SET last_active_at = created_at WHERE last_active_at IS NULL"))
-    bind.execute(sa.text("UPDATE users SET mfa_enabled = 0 WHERE mfa_enabled IS NULL"))
+    bind.execute(sa.text("UPDATE users SET mfa_enabled = false WHERE mfa_enabled IS NULL"))
     bind.execute(sa.text("UPDATE users SET last_totp_step = 0 WHERE last_totp_step IS NULL"))
 
     # ### end Alembic commands ###
