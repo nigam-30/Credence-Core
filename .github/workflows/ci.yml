@@ -164,7 +164,7 @@ jobs:
           SECRET_KEY: "CI_TEST_SECRET_KEY_FOR_PIPELINE_VALIDATION_32CHARS"
           MFA_ENCRYPTION_KEY: "CI_MFA_ENCRYPTION_KEY_FOR_PIPELINE_VALIDATION_32CHARS"
         run: |
-          python -m pytest -v tests
+          python -m pytest -v --tb=short tests 2>&1 | tee pytest.log || (echo "### Pytest Failure Details" >> $GITHUB_STEP_SUMMARY && echo '```' >> $GITHUB_STEP_SUMMARY && tail -n 80 pytest.log >> $GITHUB_STEP_SUMMARY && echo '```' >> $GITHUB_STEP_SUMMARY && exit 1)
 
   # ══════════════════════════════════════════════════════════════
   # 5. DOCKER BUILD VERIFICATION & CONTAINER SMOKE TEST
